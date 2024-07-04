@@ -35,6 +35,7 @@ public class Product {
 
     private int favoriteCount;
     private int likeCount;
+    private int commentCount;
 
     private List<String> commentIds;
 

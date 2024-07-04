@@ -10,7 +10,6 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.persistence.Column;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
 
 @Data
@@ -46,7 +45,14 @@ public class User {
 
     private String phoneNo;
     private String location;
+    private Integer followerCount;
+    private Integer followingCount;
+    private Integer conversationCount;
+    private Integer productCount;
+    private Integer postCount;
 
+    private List<String> followerIds;
+    private List<String> followingIds;
     private List<String> conversationIds; // List of conversation IDs the user is part of
     private List<String> productIds;
     private List<String> postIds;

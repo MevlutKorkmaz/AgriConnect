@@ -27,24 +27,10 @@ public class Post {
     private String content;
     private int favoriteCount;
     private int likeCount;
+    private int commentCount;
 
     private List<String> commentIds;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
-
-
-//{
-//        "products": {
-//        "_id": "ObjectId",
-//        "name": "String",
-//        "category": "String",  // crops, tools, fertilizers
-//        "description": "String",
-//        "price": "Number",
-//        "supplier_id": "ObjectId",
-//        "stock_quantity": "Number",
-//        "created_at": "Date",
-//        "updated_at": "Date"
-//        }
-//        }
