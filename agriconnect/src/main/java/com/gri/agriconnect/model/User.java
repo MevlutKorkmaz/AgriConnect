@@ -2,14 +2,11 @@ package com.gri.agriconnect.model;
 
 import jakarta.persistence.GeneratedValue;
 import jakarta.validation.constraints.NotBlank;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
-import lombok.Data;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import jakarta.persistence.Column;
 
 import java.time.LocalDateTime;
@@ -19,11 +16,13 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Setter
+@Getter
 @Document(collection = "users")
 public class User {
     @Id
     @GeneratedValue
-    private String id;
+    private String userId;
 
     @NotBlank
     private String accountName;
@@ -48,6 +47,7 @@ public class User {
     private String phoneNo;
     private String location;
 
+    private List<String> conversationIds; // List of conversation IDs the user is part of
     private List<String> productIds;
     private List<String> postIds;
 }

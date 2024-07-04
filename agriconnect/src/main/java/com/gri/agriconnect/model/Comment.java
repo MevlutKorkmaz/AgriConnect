@@ -1,9 +1,6 @@
 package com.gri.agriconnect.model;
 
-import lombok.Data;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.validation.constraints.NotBlank;
@@ -13,10 +10,12 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Setter
+@Getter
 @Document(collection = "comments")
 public class Comment {
     @Id
-    private String id;
+    private String commendId;
 
     @NotBlank
     private String userId;
@@ -24,7 +23,6 @@ public class Comment {
     @NotBlank
     private String content;
 
-    private int favoriteCount;
     private int likeCount;
 
     private LocalDateTime createdAt;
