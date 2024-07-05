@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 import java.util.List;
 
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -25,12 +26,13 @@ public class Post {
     private String title;
 
     private String content;
-    private int favoriteCount;
-    private int likeCount;
-    private int commentCount;
+    private int favoriteCount = 0;
+    private int likeCount = 0;
+    private int commentCount = 0;
 
     private List<String> commentIds;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime updatedAt = LocalDateTime.now();
 }
+

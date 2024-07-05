@@ -2,6 +2,7 @@ package com.gri.agriconnect.model;
 
 import jakarta.persistence.GeneratedValue;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.CreatedDate;
@@ -31,6 +32,7 @@ public class User {
     private String email;
 
     @NotBlank
+    @Size(min = 4, max = 15)
     private String password;
     private boolean accountLocked;
     private boolean enabled;

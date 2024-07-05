@@ -26,8 +26,8 @@ public class Message {
     @NotBlank
     private String content; // The message content
 
-    private LocalDateTime timestamp; // Time when the message was sent
+    private LocalDateTime timestamp = LocalDateTime.now(); // Time when the message was sent, default to current time
 
-    private boolean isRead; // Message read status
+    private boolean isRead = false; // Message read status, default to false
 }
 

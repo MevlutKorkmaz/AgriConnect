@@ -25,20 +25,18 @@ public class Product {
     private String category; // crops, tools, fertilizers
 
     private String description;
-
     private double price;
 
     @NotBlank
     private String supplierId;
 
     private int stockQuantity;
-
-    private int favoriteCount;
-    private int likeCount;
-    private int commentCount;
+    private int favoriteCount = 0;
+    private int likeCount = 0;
+    private int commentCount = 0;
 
     private List<String> commentIds;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime updatedAt = LocalDateTime.now();
 }
