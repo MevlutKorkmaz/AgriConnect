@@ -9,44 +9,47 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+
 @Service
 public class CommentService {
+
     @Autowired
     private CommentRepository commentRepository;
+
+    public Comment saveComment(Comment comment) {
+        comment.setUpdatedAt(LocalDateTime.now());
+        return commentRepository.save(comment);
+    }
 
     public List<Comment> getAllComments() {
         return commentRepository.findAll();
     }
 
-    public Optional<Comment> getCommentById(String id) {
-        return commentRepository.findById(id);
+    public List<Comment> getCommentsByUserId(String userId) {
+        return commentRepository.findByUserId(userId);
     }
 
-    public Comment createComment(Comment comment) {
-        comment.setCommendId(null); // Ensure the ID is null so MongoDB can generate it
-        comment.setCreatedAt(LocalDateTime.now());
-        comment.setUpdatedAt(LocalDateTime.now());
-        return commentRepository.save(comment);
+    public Optional<Comment> getCommentById(String commentId) {
+        return commentRepository.findById(commentId);
     }
 
-    public Optional<Comment> updateComment(String id, Comment comment) {
-        return commentRepository.findById(id).map(existingComment -> {
-            existingComment.setContent(comment.getContent());
-            existingComment.setUpdatedAt(LocalDateTime.now());
-            return commentRepository.save(existingComment);
-        });
+    public void deleteComment(String commentId) {
+        commentRepository.deleteById(commentId);
     }
 
-    public void deleteComment(String id) {
-        commentRepository.deleteById(id);
-    }
-
-    public Optional<Comment> likeComment(String id) {
-        return commentRepository.findById(id).map(comment -> {
-            comment.setLikeCount(comment.getLikeCount() + 1);
+    public Comment updateComment(String commentId, Comment updatedComment) {
+        return commentRepository.findById(commentId).map(comment -> {
+            comment.setContent(updatedComment.getContent());
+            comment.setLikeCount(updatedComment.getLikeCount());
             comment.setUpdatedAt(LocalDateTime.now());
             return commentRepository.save(comment);
+        }).orElseGet(() -> {
+            updatedComment.setCommentId(commentId);
+            updatedComment.setCreatedAt(LocalDateTime.now());
+            updatedComment.setUpdatedAt(LocalDateTime.now());
+            return commentRepository.save(updatedComment);
         });
     }
 }
+
 

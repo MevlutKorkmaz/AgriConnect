@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Document(collection = "comments")
 public class Comment {
     @Id
-    private String commendId;
+    private String commentId;
 
     @NotBlank
     private String userId;
@@ -23,8 +23,8 @@ public class Comment {
     @NotBlank
     private String content;
 
-    private int likeCount;
+    private int likeCount = 0;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime updatedAt = LocalDateTime.now();
 }
