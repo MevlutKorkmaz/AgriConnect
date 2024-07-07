@@ -22,14 +22,22 @@ public class PostController {
 
     private static final Logger logger = LoggerFactory.getLogger(PostController.class);
 
+    private final PostService postService;
+
     @Autowired
-    private PostService postService;
+    public PostController(PostService postService) {
+        this.postService = postService;
+    }
 
     @PostMapping
     public ResponseEntity<Post> createPost(@Valid @RequestBody Post post) {
         logger.info("Creating a new post");
-        Post createdPost = postService.savePost(post);
-        return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
+        try {
+            Post createdPost = postService.savePost(post);
+            return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @GetMapping
@@ -60,56 +68,33 @@ public class PostController {
     @DeleteMapping("/{postId}")
     public ResponseEntity<Void> deletePost(@PathVariable String postId) {
         logger.info("Deleting post with ID: {}", postId);
-        Optional<Post> post = postService.getPostById(postId);
-        if (post.isPresent()) {
+        try {
             postService.deletePost(postId);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found with ID: " + postId);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
     @PutMapping("/{postId}")
     public ResponseEntity<Post> updatePost(@PathVariable String postId, @Valid @RequestBody Post post) {
         logger.info("Updating post with ID: {}", postId);
-        Optional<Post> existingPost = postService.getPostById(postId);
-        if (existingPost.isPresent()) {
+        try {
             Post updatedPost = postService.updatePost(postId, post);
             return new ResponseEntity<>(updatedPost, HttpStatus.OK);
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found with ID: " + postId);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
     @PatchMapping("/{postId}")
     public ResponseEntity<Post> patchPost(@PathVariable String postId, @RequestBody Post post) {
         logger.info("Patching post with ID: {}", postId);
-        Optional<Post> existingPost = postService.getPostById(postId);
-        if (existingPost.isPresent()) {
-            Post updatedPost = existingPost.get();
-            if (post.getTitle() != null) {
-                updatedPost.setTitle(post.getTitle());
-            }
-            if (post.getContent() != null) {
-                updatedPost.setContent(post.getContent());
-            }
-            if (post.getFavoriteCount() != updatedPost.getFavoriteCount()) {
-                updatedPost.setFavoriteCount(post.getFavoriteCount());
-            }
-            if (post.getLikeCount() != updatedPost.getLikeCount()) {
-                updatedPost.setLikeCount(post.getLikeCount());
-            }
-            if (post.getCommentCount() != updatedPost.getCommentCount()) {
-                updatedPost.setCommentCount(post.getCommentCount());
-            }
-            if (post.getCommentIds() != null) {
-                updatedPost.setCommentIds(post.getCommentIds());
-            }
-            updatedPost.setUpdatedAt(LocalDateTime.now());
-            Post savedPost = postService.savePost(updatedPost);
-            return new ResponseEntity<>(savedPost, HttpStatus.OK);
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found with ID: " + postId);
+        try {
+            Post updatedPost = postService.updatePost(postId, post);
+            return new ResponseEntity<>(updatedPost, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+
 import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,14 +23,22 @@ public class ProductController {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductController.class);
 
+    private final ProductService productService;
+
     @Autowired
-    private ProductService productService;
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
 
     @PostMapping
     public ResponseEntity<Product> createProduct(@Valid @RequestBody Product product) {
         logger.info("Creating a new product");
-        Product createdProduct = productService.saveProduct(product);
-        return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
+        try {
+            Product createdProduct = productService.saveProduct(product);
+            return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @GetMapping
@@ -70,68 +79,33 @@ public class ProductController {
     @DeleteMapping("/{productId}")
     public ResponseEntity<Void> deleteProduct(@PathVariable String productId) {
         logger.info("Deleting product with ID: {}", productId);
-        Optional<Product> product = productService.getProductById(productId);
-        if (product.isPresent()) {
+        try {
             productService.deleteProduct(productId);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found with ID: " + productId);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
     @PutMapping("/{productId}")
     public ResponseEntity<Product> updateProduct(@PathVariable String productId, @Valid @RequestBody Product product) {
         logger.info("Updating product with ID: {}", productId);
-        Optional<Product> existingProduct = productService.getProductById(productId);
-        if (existingProduct.isPresent()) {
+        try {
             Product updatedProduct = productService.updateProduct(productId, product);
             return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found with ID: " + productId);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
     @PatchMapping("/{productId}")
     public ResponseEntity<Product> patchProduct(@PathVariable String productId, @RequestBody Product product) {
         logger.info("Patching product with ID: {}", productId);
-        Optional<Product> existingProduct = productService.getProductById(productId);
-        if (existingProduct.isPresent()) {
-            Product updatedProduct = existingProduct.get();
-            if (product.getName() != null) {
-                updatedProduct.setName(product.getName());
-            }
-            if (product.getCategory() != null) {
-                updatedProduct.setCategory(product.getCategory());
-            }
-            if (product.getDescription() != null) {
-                updatedProduct.setDescription(product.getDescription());
-            }
-            if (product.getPrice() != updatedProduct.getPrice()) {
-                updatedProduct.setPrice(product.getPrice());
-            }
-            if (product.getSupplierId() != null) {
-                updatedProduct.setSupplierId(product.getSupplierId());
-            }
-            if (product.getStockQuantity() != updatedProduct.getStockQuantity()) {
-                updatedProduct.setStockQuantity(product.getStockQuantity());
-            }
-            if (product.getFavoriteCount() != updatedProduct.getFavoriteCount()) {
-                updatedProduct.setFavoriteCount(product.getFavoriteCount());
-            }
-            if (product.getLikeCount() != updatedProduct.getLikeCount()) {
-                updatedProduct.setLikeCount(product.getLikeCount());
-            }
-            if (product.getCommentCount() != updatedProduct.getCommentCount()) {
-                updatedProduct.setCommentCount(product.getCommentCount());
-            }
-            if (product.getCommentIds() != null) {
-                updatedProduct.setCommentIds(product.getCommentIds());
-            }
-            updatedProduct.setUpdatedAt(LocalDateTime.now());
-            Product savedProduct = productService.saveProduct(updatedProduct);
-            return new ResponseEntity<>(savedProduct, HttpStatus.OK);
-        } else {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found with ID: " + productId);
+        try {
+            Product updatedProduct = productService.updateProduct(productId, product);
+            return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
@@ -141,4 +115,3 @@ public class ProductController {
         return new ResponseEntity<>(ex.getReason(), ex.getStatusCode());
     }
 }
-

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+
 import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,14 +23,22 @@ public class ConversationController {
 
     private static final Logger logger = LoggerFactory.getLogger(ConversationController.class);
 
+    private final ConversationService conversationService;
+
     @Autowired
-    private ConversationService conversationService;
+    public ConversationController(ConversationService conversationService) {
+        this.conversationService = conversationService;
+    }
 
     @PostMapping
     public ResponseEntity<Conversation> createConversation(@Valid @RequestBody Conversation conversation) {
         logger.info("Creating a new conversation");
-        Conversation createdConversation = conversationService.saveConversation(conversation);
-        return new ResponseEntity<>(createdConversation, HttpStatus.CREATED);
+        try {
+            Conversation createdConversation = conversationService.saveConversation(conversation);
+            return new ResponseEntity<>(createdConversation, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @GetMapping
@@ -87,11 +96,11 @@ public class ConversationController {
         Optional<Conversation> existingConversation = conversationService.getConversationById(conversationId);
         if (existingConversation.isPresent()) {
             Conversation updatedConversation = existingConversation.get();
-            if (conversation.getName() != null) {
-                updatedConversation.setName(conversation.getName());
+            if (conversation.getSenderId() != null) {
+                updatedConversation.setSenderId(conversation.getSenderId());
             }
-            if (conversation.getParticipantIds() != null) {
-                updatedConversation.setParticipantIds(conversation.getParticipantIds());
+            if (conversation.getReceiverId() != null) {
+                updatedConversation.setReceiverId(conversation.getReceiverId());
             }
             if (conversation.getMessageIds() != null) {
                 updatedConversation.setMessageIds(conversation.getMessageIds());

@@ -1,14 +1,11 @@
 package com.gri.agriconnect.model;
 
-import jakarta.persistence.GeneratedValue;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.*;
-import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
-import jakarta.persistence.Column;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,25 +14,30 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Setter
-@Getter
 @Document(collection = "users")
 public class User {
+
     @Id
     private String userId;
 
     @NotBlank
     private String accountName;
-    private String fullName;
+
+    @NotBlank(message = "First name cannot be blank")
+    private String firstName;
+
+    @NotBlank(message = "Last name cannot be blank")
+    private String lastName;
 
     @NotBlank
+    @Email(message = "Email should be valid")
     private String email;
 
-    @NotBlank
-    @Size(min = 4, max = 15)
+    @Size(min = 4, max = 15, message = "Password must be between 4 and 15 characters")
     private String password;
-    private boolean accountLocked;
-    private boolean enabled;
+
+    private Boolean accountLocked;
+    private Boolean enabled;
 
     @CreatedDate
     private LocalDateTime createdDate;
@@ -45,17 +47,51 @@ public class User {
 
     private String phoneNo;
     private String location;
-    private Integer followerCount = 0;
-    private Integer followingCount = 0;
-    private Integer conversationCount = 0;
-    private Integer productCount = 0;
-    private Integer postCount = 0;
 
-    private List<String> followerIds = new ArrayList<>();
-    private List<String> followingIds = new ArrayList<>();
-    private List<String> conversationIds = new ArrayList<>(); // List of conversation IDs the user is part of
-    private List<String> productIds = new ArrayList<>();
-    private List<String> postIds = new ArrayList<>();
+    @PositiveOrZero
+    private Integer followerCount;
+
+    @PositiveOrZero
+    private Integer followingCount;
+
+    @PositiveOrZero
+    private Integer conversationCount;
+
+    @PositiveOrZero
+    private Integer productCount;
+
+    @PositiveOrZero
+    private Integer postCount;
+
+    private List<String> followerIds;
+    private List<String> followingIds;
+    private List<String> conversationIds;
+    private List<String> productIds;
+    private List<String> postIds;
+
+    // Custom constructor for mandatory fields
+    public User(String accountName, String firstName, String lastName, String email, String password) {
+        this.accountName = accountName;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.password = password;
+        this.accountLocked = false;
+        this.enabled = true;
+        this.createdDate = LocalDateTime.now();
+        this.lastModifiedDate = LocalDateTime.now();
+        this.followerCount = 0;
+        this.followingCount = 0;
+        this.conversationCount = 0;
+        this.productCount = 0;
+        this.postCount = 0;
+        this.followerIds = new ArrayList<>();
+        this.followingIds = new ArrayList<>();
+        this.conversationIds = new ArrayList<>();
+        this.productIds = new ArrayList<>();
+        this.postIds = new ArrayList<>();
+    }
+
     // Add follower
     public void addFollower(String followerId) {
         if (!followerIds.contains(followerId)) {
@@ -135,10 +171,9 @@ public class User {
             postCount--;
         }
     }
+
+    // Get full name
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
 }
-
-
-
-
-
-

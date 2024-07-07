@@ -1,7 +1,9 @@
 package com.gri.agriconnect.model;
 
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.mapping.Document;
 import jakarta.validation.constraints.NotBlank;
 
@@ -10,8 +12,6 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Setter
-@Getter
 @Document(collection = "comments")
 public class Comment {
     @Id
@@ -23,8 +23,24 @@ public class Comment {
     @NotBlank
     private String content;
 
-    private int likeCount = 0;
+    @NotBlank
+    private String postId; // ID of the post or product this comment belongs to
 
-    private LocalDateTime createdAt = LocalDateTime.now();
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private Integer likeCount;
+
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    // Custom constructor for mandatory fields
+    public Comment(String userId, String content, String postId) {
+        this.userId = userId;
+        this.content = content;
+        this.postId = postId;
+        this.likeCount = 0;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
 }

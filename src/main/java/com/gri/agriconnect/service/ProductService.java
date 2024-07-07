@@ -1,9 +1,11 @@
 package com.gri.agriconnect.service;
 
 import com.gri.agriconnect.model.Product;
+import com.gri.agriconnect.model.User;
 import com.gri.agriconnect.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -11,12 +13,24 @@ import java.util.Optional;
 @Service
 public class ProductService {
 
+    private final ProductRepository productRepository;
+    private final UserService userService;
+
     @Autowired
-    private ProductRepository productRepository;
+    public ProductService(ProductRepository productRepository, UserService userService) {
+        this.productRepository = productRepository;
+        this.userService = userService;
+    }
 
     public Product saveProduct(Product product) {
-        product.setUpdatedAt(LocalDateTime.now());
-        return productRepository.save(product);
+        Optional<User> userOpt = userService.getUserById(product.getSupplierId());
+        if (userOpt.isPresent()) {
+            Product savedProduct = productRepository.save(product);
+            userService.addProductToUser(product.getSupplierId(), savedProduct.getProductId());
+            return savedProduct;
+        } else {
+            throw new IllegalArgumentException("User with ID " + product.getSupplierId() + " does not exist.");
+        }
     }
 
     public List<Product> getAllProducts() {
@@ -36,7 +50,14 @@ public class ProductService {
     }
 
     public void deleteProduct(String productId) {
-        productRepository.deleteById(productId);
+        Optional<Product> productOpt = productRepository.findById(productId);
+        if (productOpt.isPresent()) {
+            Product product = productOpt.get();
+            userService.removeProductFromUser(product.getSupplierId(), productId);
+            productRepository.deleteById(productId);
+        } else {
+            throw new IllegalArgumentException("Product with ID " + productId + " does not exist.");
+        }
     }
 
     public Product updateProduct(String productId, Product updatedProduct) {
@@ -51,6 +72,8 @@ public class ProductService {
             product.setLikeCount(updatedProduct.getLikeCount());
             product.setCommentCount(updatedProduct.getCommentCount());
             product.setCommentIds(updatedProduct.getCommentIds());
+            product.setCategoryTags(updatedProduct.getCategoryTags());
+            product.setImageLinks(updatedProduct.getImageLinks());
             product.setUpdatedAt(LocalDateTime.now());
             return productRepository.save(product);
         }).orElseGet(() -> {
@@ -61,4 +84,3 @@ public class ProductService {
         });
     }
 }
-
