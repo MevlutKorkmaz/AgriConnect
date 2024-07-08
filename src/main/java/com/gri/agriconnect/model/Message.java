@@ -11,8 +11,6 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Document(collection = "messages")
 public class Message {
 

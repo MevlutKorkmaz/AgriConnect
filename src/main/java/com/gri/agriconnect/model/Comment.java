@@ -10,8 +10,6 @@ import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Document(collection = "comments")
 public class Comment {
     @Id
