@@ -122,10 +122,10 @@ public class QuestionController {
             @ApiResponse(responseCode = "404", description = "Question not found")
     })
     @PutMapping("/{questionId}")
-    public ResponseEntity<Question> updateQuestion(@PathVariable String questionId, @Valid @RequestBody Question question) {
+    public ResponseEntity<Question> updateQuestion(@PathVariable String questionId, @Valid @RequestBody QuestionDTO questionDTO) {
         logger.info("Updating question with ID: {}", questionId);
         try {
-            Question updatedQuestion = questionService.updateQuestion(questionId, question);
+            Question updatedQuestion = questionService.updateQuestion(questionId, questionDTO);
             return new ResponseEntity<>(updatedQuestion, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
@@ -199,23 +199,6 @@ public class QuestionController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
-
-//    @Operation(summary = "Increment share count", description = "Increment the share count of a question by its ID.")
-//    @ApiResponses(value = {
-//            @ApiResponse(responseCode = "200", description = "Share count incremented successfully"),
-//            @ApiResponse(responseCode = "404", description = "Question not found")
-//    })
-//    @PostMapping("/{questionId}/share")
-//    public ResponseEntity<Void> incrementShareCount(
-//            @Parameter(description = "ID of the question to increment share count") @PathVariable String questionId) {
-//        logger.info("Incrementing share count for question with ID: {}", questionId);
-//        try {
-//            questionService.incrementShareCount(questionId);
-//            return new ResponseEntity<>(HttpStatus.OK);
-//        } catch (IllegalArgumentException e) {
-//            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
-//        }
-//    }
 
     @Operation(summary = "Add images to question", description = "Adds multiple images to a question by its ID.")
     @ApiResponses(value = {

@@ -56,18 +56,14 @@ public class User {
     private Integer followingCount;
 
     @PositiveOrZero
-    private Integer conversationCount;
-
-    @PositiveOrZero
-    private Integer productCount;
+    private Integer questionCount;
 
     @PositiveOrZero
     private Integer postCount;
 
     private List<String> followerIds;
     private List<String> followingIds;
-    private List<String> conversationIds;
-    private List<String> productIds;
+    private List<String> questionIds;
     private List<String> postIds;
 
     private String profilePhotoId;  // Store the ID of the profile photo
@@ -94,13 +90,11 @@ public class User {
         this.lastModifiedDate = LocalDateTime.now();
         this.followerCount = 0;
         this.followingCount = 0;
-        this.conversationCount = 0;
-        this.productCount = 0;
+        this.questionCount = 0;
         this.postCount = 0;
         this.followerIds = new ArrayList<>();
         this.followingIds = new ArrayList<>();
-        this.conversationIds = new ArrayList<>();
-        this.productIds = new ArrayList<>();
+        this.questionIds = new ArrayList<>();
         this.postIds = new ArrayList<>();
         this.privateAccount = false;
         this.socialMediaLinks = new ArrayList<>();
@@ -143,35 +137,19 @@ public class User {
         }
     }
 
-    // Add conversation
-    public void addConversation(String conversationId) {
-        if (!conversationIds.contains(conversationId)) {
-            conversationIds.add(conversationId);
-            conversationCount++;
+    // Add question
+    public void addQuestion(String questionId) {
+        if (!questionIds.contains(questionId)) {
+            questionIds.add(questionId);
+            questionCount++;
         }
     }
 
-    // Remove conversation
-    public void removeConversation(String conversationId) {
-        if (conversationIds.contains(conversationId)) {
-            conversationIds.remove(conversationId);
-            conversationCount--;
-        }
-    }
-
-    // Add product
-    public void addProduct(String productId) {
-        if (!productIds.contains(productId)) {
-            productIds.add(productId);
-            productCount++;
-        }
-    }
-
-    // Remove product
-    public void removeProduct(String productId) {
-        if (productIds.contains(productId)) {
-            productIds.remove(productId);
-            productCount--;
+    // Remove question
+    public void removeQuestion(String questionId) {
+        if (questionIds.contains(questionId)) {
+            questionIds.remove(questionId);
+            questionCount--;
         }
     }
 

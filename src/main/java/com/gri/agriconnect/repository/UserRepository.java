@@ -10,5 +10,8 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends MongoRepository<User, String> {
     Optional<User> findByEmail(String email); // Ensure email uniqueness
+    Optional<User> findByEmailVerificationToken(String token);
+    Optional<User> findByPasswordResetToken(String passwordResetToken);
     List<User> findByFirstNameContainingOrLastNameContaining(String firstName, String lastName); // Search by name
 }
+

@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class QuestionService {
@@ -29,9 +28,9 @@ public class QuestionService {
     }
 
     public Question createQuestion(QuestionDTO questionDTO) throws IOException {
-        Optional<User> userOpt = userService.getUserById("668c62b4be878965a1e51acd"); // Replace with actual userId from authentication
+        Optional<User> userOpt = userService.getUserById(questionDTO.getUserId()); // Replace with actual userId from authentication
         if (userOpt.isPresent()) {
-            Question question = new Question(questionDTO.getTitle(), questionDTO.getBody(), "668c62b4be878965a1e51acd");
+            Question question = new Question(questionDTO.getTitle(), questionDTO.getBody(), questionDTO.getUserId());
 
             // Handle tags
             List<String> tags = questionDTO.getTags();
@@ -69,31 +68,39 @@ public class QuestionService {
     public void deleteQuestion(String questionId) {
         Optional<Question> questionOpt = questionRepository.findById(questionId);
         if (questionOpt.isPresent()) {
-            Question question = questionOpt.get();
             questionRepository.deleteById(questionId);
         } else {
             throw new IllegalArgumentException("Question with ID " + questionId + " does not exist.");
         }
     }
 
-    public Question updateQuestion(String questionId, Question updatedQuestion) {
+    public Question updateQuestion(String questionId, QuestionDTO updatedQuestionDTO) {
         return questionRepository.findById(questionId).map(question -> {
-            question.setTitle(updatedQuestion.getTitle());
-            question.setBody(updatedQuestion.getBody());
-            question.setUserId(updatedQuestion.getUserId());
-            question.setFavoriteCount(updatedQuestion.getFavoriteCount());
-            question.setLikeCount(updatedQuestion.getLikeCount());
-            question.setCommentCount(updatedQuestion.getCommentCount());
-            question.setCategoryTags(updatedQuestion.getCategoryTags());
-            question.setImageIds(updatedQuestion.getImageIds());
+            question.setTitle(updatedQuestionDTO.getTitle());
+            question.setBody(updatedQuestionDTO.getBody());
+            question.setUserId(updatedQuestionDTO.getUserId());
+
+            List<String> tags = updatedQuestionDTO.getTags();
+            if (tags != null) {
+                question.getCategoryTags().clear();
+                for (String tag : tags) {
+                    question.addCategoryTag(tag);
+                }
+            }
+
+            MultipartFile file = updatedQuestionDTO.getFile();
+            if (file != null && !file.isEmpty()) {
+                try {
+                    String imageId = imageService.uploadImageToFileSystem(file);
+                    question.addImage(imageId);
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to upload image", e);
+                }
+            }
+
             question.setUpdatedAt(LocalDateTime.now());
             return questionRepository.save(question);
-        }).orElseGet(() -> {
-            updatedQuestion.setQuestionId(questionId);
-            updatedQuestion.setCreatedAt(LocalDateTime.now());
-            updatedQuestion.setUpdatedAt(LocalDateTime.now());
-            return questionRepository.save(updatedQuestion);
-        });
+        }).orElseThrow(() -> new IllegalArgumentException("Question with ID " + questionId + " does not exist."));
     }
 
     public void addCategoryTag(String questionId, String tag) {
@@ -145,7 +152,7 @@ public class QuestionService {
 
     public Question likeQuestion(String questionId) {
         return questionRepository.findById(questionId).map(question -> {
-            question.setLikeCount(question.getLikeCount() + 1);
+            question.incrementLikeCount();
             return questionRepository.save(question);
         }).orElseThrow(() -> new IllegalArgumentException("Question with ID " + questionId + " does not exist."));
     }
@@ -157,13 +164,6 @@ public class QuestionService {
         }).orElseThrow(() -> new IllegalArgumentException("Question with ID " + questionId + " does not exist."));
     }
 
-//    public void incrementShareCount(String questionId) {
-//        questionRepository.findById(questionId).ifPresent(question -> {
-//            question.incrementShareCount();
-//            questionRepository.save(question);
-//        });
-//    }
-
     // New method to search questions by category tags
     public List<Question> searchQuestionsByTag(String tag) {
         return questionRepository.findByCategoryTagsContaining(tag);
@@ -172,5 +172,10 @@ public class QuestionService {
     // New method to search questions by title or body
     public List<Question> searchQuestionsByTitleOrBody(String searchText) {
         return questionRepository.findByTitleContainingOrBodyContaining(searchText, searchText);
+    }
+
+    // Add saveQuestion method
+    public Question saveQuestion(Question question) {
+        return questionRepository.save(question);
     }
 }

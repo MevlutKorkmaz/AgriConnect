@@ -1,31 +1,31 @@
 package com.gri.agriconnect.controller;
 
+import com.gri.agriconnect.dto.CommentDTO;
 import com.gri.agriconnect.model.Comment;
 import com.gri.agriconnect.service.CommentService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.server.ResponseStatusException;
-import javax.validation.Valid;
-
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+
+import javax.validation.Valid;
+import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/comments")
 @Validated
-@Tag(name = "Comment", description = "Operations related to Comments")
+@Tag(name = "Comment", description = "API for managing comments")
 public class CommentController {
 
     private static final Logger logger = LoggerFactory.getLogger(CommentController.class);
@@ -37,24 +37,27 @@ public class CommentController {
         this.commentService = commentService;
     }
 
-    @Operation(summary = "Create a new comment", description = "This endpoint allows you to create a new comment.")
-    @ApiResponse(responseCode = "201", description = "Comment created successfully",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class)))
-    @PostMapping
-    public ResponseEntity<Comment> createComment(@Valid @RequestBody Comment comment) {
+    @Operation(summary = "Create a new comment", description = "Adds a new comment to the system")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Comment created",
+                    content = @Content(schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid input")
+    })
+    @PostMapping("/create")
+    public ResponseEntity<Comment> createComment(@Valid @RequestBody CommentDTO commentDTO) {
         logger.info("Creating a new comment");
         try {
-            Comment createdComment = commentService.saveComment(comment);
+            Comment createdComment = commentService.saveComment(commentDTO);
             return new ResponseEntity<>(createdComment, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
-    @Operation(summary = "Get all comments", description = "Fetch all comments.")
+    @Operation(summary = "Get all comments", description = "Fetches all comments in the system")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of comments",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class)))
+            @ApiResponse(responseCode = "200", description = "Comments fetched",
+                    content = @Content(schema = @Schema(implementation = Comment.class)))
     })
     @GetMapping
     public ResponseEntity<List<Comment>> getAllComments() {
@@ -63,15 +66,14 @@ public class CommentController {
         return new ResponseEntity<>(comments, HttpStatus.OK);
     }
 
-    @Operation(summary = "Get comments by user ID", description = "Fetch all comments for a given user ID.")
+    @Operation(summary = "Get comments by user ID", description = "Fetches comments by user ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of comments",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class))),
-            @ApiResponse(responseCode = "404", description = "No comments found for user ID")
+            @ApiResponse(responseCode = "200", description = "Comments fetched",
+                    content = @Content(schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "404", description = "No comments found")
     })
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Comment>> getCommentsByUserId(
-            @Parameter(description = "ID of the user to fetch comments for") @PathVariable String userId) {
+    public ResponseEntity<List<Comment>> getCommentsByUserId(@PathVariable String userId) {
         logger.info("Fetching comments for user ID: {}", userId);
         List<Comment> comments = commentService.getCommentsByUserId(userId);
         if (comments.isEmpty()) {
@@ -80,29 +82,59 @@ public class CommentController {
         return new ResponseEntity<>(comments, HttpStatus.OK);
     }
 
-    @Operation(summary = "Get a comment by ID", description = "Fetch a comment by its ID.")
+    @Operation(summary = "Get comments by post ID", description = "Fetches comments by post ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Comment found",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "200", description = "Comments fetched",
+                    content = @Content(schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "404", description = "No comments found")
+    })
+    @GetMapping("/post/{postId}")
+    public ResponseEntity<List<Comment>> getCommentsByPostId(@PathVariable String postId) {
+        logger.info("Fetching comments for post ID: {}", postId);
+        List<Comment> comments = commentService.getCommentsByPostId(postId);
+        if (comments.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No comments found for post ID: " + postId);
+        }
+        return new ResponseEntity<>(comments, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Get comments by question ID", description = "Fetches comments by question ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comments fetched",
+                    content = @Content(schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "404", description = "No comments found")
+    })
+    @GetMapping("/question/{questionId}")
+    public ResponseEntity<List<Comment>> getCommentsByQuestionId(@PathVariable String questionId) {
+        logger.info("Fetching comments for question ID: {}", questionId);
+        List<Comment> comments = commentService.getCommentsByQuestionId(questionId);
+        if (comments.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No comments found for question ID: " + questionId);
+        }
+        return new ResponseEntity<>(comments, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Get comment by ID", description = "Fetches a comment by its ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comment fetched",
+                    content = @Content(schema = @Schema(implementation = Comment.class))),
             @ApiResponse(responseCode = "404", description = "Comment not found")
     })
     @GetMapping("/{commentId}")
-    public ResponseEntity<Comment> getCommentById(
-            @Parameter(description = "ID of the comment to fetch") @PathVariable String commentId) {
+    public ResponseEntity<Comment> getCommentById(@PathVariable String commentId) {
         logger.info("Fetching comment with ID: {}", commentId);
         Optional<Comment> comment = commentService.getCommentById(commentId);
         return comment.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Comment not found with ID: " + commentId));
     }
 
-    @Operation(summary = "Delete a comment by ID", description = "Delete a comment by its ID.")
+    @Operation(summary = "Delete comment", description = "Deletes a comment by its ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Comment deleted successfully"),
+            @ApiResponse(responseCode = "204", description = "Comment deleted"),
             @ApiResponse(responseCode = "404", description = "Comment not found")
     })
     @DeleteMapping("/{commentId}")
-    public ResponseEntity<Void> deleteComment(
-            @Parameter(description = "ID of the comment to delete") @PathVariable String commentId) {
+    public ResponseEntity<Void> deleteComment(@PathVariable String commentId) {
         logger.info("Deleting comment with ID: {}", commentId);
         try {
             commentService.deleteComment(commentId);
@@ -112,71 +144,49 @@ public class CommentController {
         }
     }
 
-    @Operation(summary = "Update a comment", description = "Update the details of an existing comment.")
+    @Operation(summary = "Update comment", description = "Updates a comment by its ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Comment updated successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "200", description = "Comment updated",
+                    content = @Content(schema = @Schema(implementation = Comment.class))),
             @ApiResponse(responseCode = "404", description = "Comment not found")
     })
     @PutMapping("/{commentId}")
-    public ResponseEntity<Comment> updateComment(
-            @Parameter(description = "ID of the comment to update") @PathVariable String commentId,
-            @Valid @RequestBody Comment comment) {
+    public ResponseEntity<Comment> updateComment(@PathVariable String commentId, @Valid @RequestBody CommentDTO commentDTO) {
         logger.info("Updating comment with ID: {}", commentId);
         try {
-            Comment updatedComment = commentService.updateComment(commentId, comment);
+            Comment updatedComment = commentService.updateComment(commentId, commentDTO);
             return new ResponseEntity<>(updatedComment, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
-    @Operation(summary = "Reply to a comment", description = "Reply to an existing comment by its ID.")
+    @Operation(summary = "Reply to comment", description = "Replies to a comment by its ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Reply created successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class))),
-            @ApiResponse(responseCode = "404", description = "Parent comment not found")
+            @ApiResponse(responseCode = "201", description = "Reply created",
+                    content = @Content(schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid input")
     })
-    @PostMapping("/{parentCommentId}/reply")
-    public ResponseEntity<Comment> replyToComment(
-            @Parameter(description = "ID of the parent comment to reply to") @PathVariable String parentCommentId,
-            @Valid @RequestBody Comment reply) {
-        logger.info("Replying to comment with ID: {}", parentCommentId);
+    @PostMapping("/{commentId}/reply")
+    public ResponseEntity<Comment> replyToComment(@PathVariable String commentId, @Valid @RequestBody CommentDTO commentDTO) {
+        logger.info("Replying to comment with ID: {}", commentId);
         try {
-            Comment createdReply = commentService.replyToComment(parentCommentId, reply);
-            return new ResponseEntity<>(createdReply, HttpStatus.CREATED);
+            Comment reply = commentService.replyToComment(commentId, commentDTO);
+            return new ResponseEntity<>(reply, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
-    @Operation(summary = "Get comments for a post or product", description = "Fetch all comments for a given post or product ID.")
+    @Operation(summary = "Get replies for a comment", description = "Fetches replies for a comment by its ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of comments",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class))),
-            @ApiResponse(responseCode = "404", description = "No comments found for post or product ID")
-    })
-    @GetMapping("/post/{postId}")
-    public ResponseEntity<List<Comment>> getCommentsByPostId(
-            @Parameter(description = "ID of the post or product to fetch comments for") @PathVariable String postId) {
-        logger.info("Fetching comments for post or product ID: {}", postId);
-        List<Comment> comments = commentService.getCommentsByPostId(postId);
-        if (comments.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No comments found for post or product ID: " + postId);
-        }
-        return new ResponseEntity<>(comments, HttpStatus.OK);
-    }
-
-    @Operation(summary = "Get replies for a comment", description = "Fetch all replies for a given comment ID.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of replies",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class))),
-            @ApiResponse(responseCode = "404", description = "No replies found for comment ID")
+            @ApiResponse(responseCode = "200", description = "Replies fetched",
+                    content = @Content(schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "404", description = "Comment not found")
     })
     @GetMapping("/{commentId}/replies")
-    public ResponseEntity<List<Comment>> getRepliesForComment(
-            @Parameter(description = "ID of the comment to fetch replies for") @PathVariable String commentId) {
-        logger.info("Fetching replies for comment ID: {}", commentId);
+    public ResponseEntity<List<Comment>> getRepliesForComment(@PathVariable String commentId) {
+        logger.info("Fetching replies for comment with ID: {}", commentId);
         List<Comment> replies = commentService.getRepliesForComment(commentId);
         if (replies.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No replies found for comment ID: " + commentId);
@@ -184,14 +194,13 @@ public class CommentController {
         return new ResponseEntity<>(replies, HttpStatus.OK);
     }
 
-    @Operation(summary = "Like a comment", description = "Like a comment by its ID.")
+    @Operation(summary = "Like a comment", description = "Likes a comment by its ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Comment liked successfully"),
+            @ApiResponse(responseCode = "200", description = "Comment liked"),
             @ApiResponse(responseCode = "404", description = "Comment not found")
     })
     @PostMapping("/{commentId}/like")
-    public ResponseEntity<Comment> likeComment(
-            @Parameter(description = "ID of the comment to like") @PathVariable String commentId) {
+    public ResponseEntity<Comment> likeComment(@PathVariable String commentId) {
         logger.info("Liking comment with ID: {}", commentId);
         try {
             Comment likedComment = commentService.likeComment(commentId);
@@ -201,14 +210,13 @@ public class CommentController {
         }
     }
 
-    @Operation(summary = "Unlike a comment", description = "Unlike a comment by its ID.")
+    @Operation(summary = "Unlike a comment", description = "Unlikes a comment by its ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Comment unliked successfully"),
+            @ApiResponse(responseCode = "200", description = "Comment unliked"),
             @ApiResponse(responseCode = "404", description = "Comment not found")
     })
     @PostMapping("/{commentId}/unlike")
-    public ResponseEntity<Comment> unlikeComment(
-            @Parameter(description = "ID of the comment to unlike") @PathVariable String commentId) {
+    public ResponseEntity<Comment> unlikeComment(@PathVariable String commentId) {
         logger.info("Unliking comment with ID: {}", commentId);
         try {
             Comment unlikedComment = commentService.unlikeComment(commentId);

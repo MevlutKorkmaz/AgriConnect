@@ -1,9 +1,10 @@
 package com.gri.agriconnect.service;
 
+import com.gri.agriconnect.exception.CustomDuplicateKeyException;
 import com.gri.agriconnect.model.User;
 import com.gri.agriconnect.repository.UserRepository;
-import com.gri.agriconnect.service.ImageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,7 +25,23 @@ public class UserService {
     }
 
     public User createUser(User user) {
-        return userRepository.save(user);
+        try {
+            return userRepository.save(user);
+        } catch (DuplicateKeyException e) {
+            throw new CustomDuplicateKeyException("Email has been used in another account");
+        }
+    }
+
+    // Authenticate user
+    public Optional<String> authenticateUser(String email, String password) {
+        Optional<User> userOptional = userRepository.findByEmail(email);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            if (user.getPassword().equals(password)) {
+                return Optional.of(user.getUserId());
+            }
+        }
+        return Optional.empty();
     }
 
     public Optional<User> getUserById(String userId) {
@@ -45,13 +62,11 @@ public class UserService {
             user.setLocation(userDetails.getLocation());
             user.setFollowerCount(userDetails.getFollowerCount());
             user.setFollowingCount(userDetails.getFollowingCount());
-            user.setConversationCount(userDetails.getConversationCount());
-            user.setProductCount(userDetails.getProductCount());
+            user.setQuestionCount(userDetails.getQuestionCount());
             user.setPostCount(userDetails.getPostCount());
             user.setFollowerIds(userDetails.getFollowerIds());
             user.setFollowingIds(userDetails.getFollowingIds());
-            user.setConversationIds(userDetails.getConversationIds());
-            user.setProductIds(userDetails.getProductIds());
+            user.setQuestionIds(userDetails.getQuestionIds());
             user.setPostIds(userDetails.getPostIds());
             user.setAccountLocked(userDetails.getAccountLocked());
             user.setAccountEnabled(userDetails.getAccountEnabled());
@@ -143,7 +158,7 @@ public class UserService {
         }).orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    // Methods to add and remove posts and products
+    // Methods to add and remove posts and questions
     public void addPostToUser(String userId, String postId) {
         userRepository.findById(userId).ifPresent(user -> {
             user.addPost(postId);
@@ -158,17 +173,30 @@ public class UserService {
         });
     }
 
-    public void addProductToUser(String userId, String productId) {
+    public void addQuestionToUser(String userId, String questionId) {
         userRepository.findById(userId).ifPresent(user -> {
-            user.addProduct(productId);
+            user.addQuestion(questionId);
             userRepository.save(user);
         });
     }
 
-    public void removeProductFromUser(String userId, String productId) {
+    public void removeQuestionFromUser(String userId, String questionId) {
         userRepository.findById(userId).ifPresent(user -> {
-            user.removeProduct(productId);
+            user.removeQuestion(questionId);
             userRepository.save(user);
         });
+    }
+
+    // Methods to get follower IDs and following IDs
+    public List<String> getFollowerIds(String userId) {
+        return userRepository.findById(userId)
+                .map(User::getFollowerIds)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public List<String> getFollowingIds(String userId) {
+        return userRepository.findById(userId)
+                .map(User::getFollowingIds)
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }

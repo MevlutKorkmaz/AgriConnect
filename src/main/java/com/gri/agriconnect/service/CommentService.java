@@ -1,11 +1,10 @@
 package com.gri.agriconnect.service;
 
+import com.gri.agriconnect.dto.CommentDTO;
 import com.gri.agriconnect.model.Comment;
 import com.gri.agriconnect.model.Post;
-import com.gri.agriconnect.model.Product;
+import com.gri.agriconnect.model.Question;
 import com.gri.agriconnect.repository.CommentRepository;
-import com.gri.agriconnect.repository.PostRepository;
-import com.gri.agriconnect.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -18,38 +17,48 @@ public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostService postService;
-    private final ProductService productService;
+    private final QuestionService questionService;
 
     @Autowired
-    public CommentService(CommentRepository commentRepository, PostService postService, ProductService productService) {
+    public CommentService(CommentRepository commentRepository, PostService postService, QuestionService questionService) {
         this.commentRepository = commentRepository;
         this.postService = postService;
-        this.productService = productService;
+        this.questionService = questionService;
     }
 
-    public Comment saveComment(Comment comment) {
+    public Comment saveComment(CommentDTO commentDTO) {
         boolean isValid = false;
+        Comment comment = new Comment(
+                commentDTO.getUserId(),
+                commentDTO.getContent(),
+                commentDTO.getPostId(),
+                commentDTO.getQuestionId()
+        );
 
-        Optional<Post> postOpt = postService.getPostById(comment.getPostId());
-        if (postOpt.isPresent()) {
-            Post post = postOpt.get();
-            Comment savedComment = commentRepository.save(comment);
-            post.getCommentIds().add(savedComment.getCommentId());
-            postService.savePost(post);
-            isValid = true;
+        if (comment.getPostId() != null) {
+            Optional<Post> postOpt = postService.getPostById(comment.getPostId());
+            if (postOpt.isPresent()) {
+                Post post = postOpt.get();
+                Comment savedComment = commentRepository.save(comment);
+                post.getCommentIds().add(savedComment.getCommentId());
+                postService.savePost(post);
+                isValid = true;
+            }
         }
 
-        Optional<Product> productOpt = productService.getProductById(comment.getPostId());
-        if (productOpt.isPresent()) {
-            Product product = productOpt.get();
-            Comment savedComment = commentRepository.save(comment);
-            product.getCommentIds().add(savedComment.getCommentId());
-            productService.updateProduct(product.getProductId(), product);
-            isValid = true;
+        if (comment.getQuestionId() != null) {
+            Optional<Question> questionOpt = questionService.getQuestionById(comment.getQuestionId());
+            if (questionOpt.isPresent()) {
+                Question question = questionOpt.get();
+                Comment savedComment = commentRepository.save(comment);
+                question.getCommentIds().add(savedComment.getCommentId());
+                questionService.saveQuestion(question);
+                isValid = true;
+            }
         }
 
         if (!isValid) {
-            throw new IllegalArgumentException("Post or Product with ID " + comment.getPostId() + " does not exist.");
+            throw new IllegalArgumentException("Post or Question with given ID does not exist.");
         }
 
         comment.setUpdatedAt(LocalDateTime.now());
@@ -68,6 +77,10 @@ public class CommentService {
         return commentRepository.findByPostId(postId);
     }
 
+    public List<Comment> getCommentsByQuestionId(String questionId) {
+        return commentRepository.findByQuestionId(questionId);
+    }
+
     public Optional<Comment> getCommentById(String commentId) {
         return commentRepository.findById(commentId);
     }
@@ -77,18 +90,22 @@ public class CommentService {
         if (commentOpt.isPresent()) {
             Comment comment = commentOpt.get();
 
-            Optional<Post> postOpt = postService.getPostById(comment.getPostId());
-            if (postOpt.isPresent()) {
-                Post post = postOpt.get();
-                post.getCommentIds().remove(commentId);
-                postService.savePost(post);
+            if (comment.getPostId() != null) {
+                Optional<Post> postOpt = postService.getPostById(comment.getPostId());
+                if (postOpt.isPresent()) {
+                    Post post = postOpt.get();
+                    post.getCommentIds().remove(commentId);
+                    postService.savePost(post);
+                }
             }
 
-            Optional<Product> productOpt = productService.getProductById(comment.getPostId());
-            if (productOpt.isPresent()) {
-                Product product = productOpt.get();
-                product.getCommentIds().remove(commentId);
-                productService.updateProduct(product.getProductId(), product);
+            if (comment.getQuestionId() != null) {
+                Optional<Question> questionOpt = questionService.getQuestionById(comment.getQuestionId());
+                if (questionOpt.isPresent()) {
+                    Question question = questionOpt.get();
+                    question.getCommentIds().remove(commentId);
+                    questionService.saveQuestion(question);
+                }
             }
 
             commentRepository.deleteById(commentId);
@@ -97,42 +114,45 @@ public class CommentService {
         }
     }
 
-    public Comment updateComment(String commentId, Comment updatedComment) {
+    public Comment updateComment(String commentId, CommentDTO updatedCommentDTO) {
         return commentRepository.findById(commentId).map(comment -> {
-            comment.setContent(updatedComment.getContent());
-            comment.setLikeCount(updatedComment.getLikeCount());
+            comment.setContent(updatedCommentDTO.getContent());
             comment.setUpdatedAt(LocalDateTime.now());
-            comment.markAsEdited(updatedComment.getContent());
+            comment.markAsEdited(updatedCommentDTO.getContent());
             return commentRepository.save(comment);
-        }).orElseGet(() -> {
-            updatedComment.setCommentId(commentId);
-            updatedComment.setCreatedAt(LocalDateTime.now());
-            updatedComment.setUpdatedAt(LocalDateTime.now());
-            return commentRepository.save(updatedComment);
-        });
+        }).orElseThrow(() -> new IllegalArgumentException("Comment with ID " + commentId + " does not exist."));
     }
 
-    public Comment replyToComment(String parentCommentId, Comment reply) {
+    public Comment replyToComment(String parentCommentId, CommentDTO replyDTO) {
         Optional<Comment> parentCommentOpt = commentRepository.findById(parentCommentId);
         if (parentCommentOpt.isPresent()) {
-            Comment parentComment = parentCommentOpt.get();
+            Comment reply = new Comment(
+                    replyDTO.getUserId(),
+                    replyDTO.getContent(),
+                    replyDTO.getPostId(),
+                    replyDTO.getQuestionId()
+            );
             reply.setParentCommentId(parentCommentId);
             reply.setCreatedAt(LocalDateTime.now());
             reply.setUpdatedAt(LocalDateTime.now());
             Comment savedReply = commentRepository.save(reply);
 
-            Optional<Post> postOpt = postService.getPostById(reply.getPostId());
-            if (postOpt.isPresent()) {
-                Post post = postOpt.get();
-                post.getCommentIds().add(savedReply.getCommentId());
-                postService.savePost(post);
+            if (reply.getPostId() != null) {
+                Optional<Post> postOpt = postService.getPostById(reply.getPostId());
+                if (postOpt.isPresent()) {
+                    Post post = postOpt.get();
+                    post.getCommentIds().add(savedReply.getCommentId());
+                    postService.savePost(post);
+                }
             }
 
-            Optional<Product> productOpt = productService.getProductById(reply.getPostId());
-            if (productOpt.isPresent()) {
-                Product product = productOpt.get();
-                product.getCommentIds().add(savedReply.getCommentId());
-                productService.updateProduct(product.getProductId(), product);
+            if (reply.getQuestionId() != null) {
+                Optional<Question> questionOpt = questionService.getQuestionById(reply.getQuestionId());
+                if (questionOpt.isPresent()) {
+                    Question question = questionOpt.get();
+                    question.getCommentIds().add(savedReply.getCommentId());
+                    questionService.saveQuestion(question);
+                }
             }
 
             return savedReply;

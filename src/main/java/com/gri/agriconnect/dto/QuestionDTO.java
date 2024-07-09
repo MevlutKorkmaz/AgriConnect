@@ -9,6 +9,9 @@ import java.util.List;
 
 @Data
 public class QuestionDTO {
+    @NotNull(message = "User ID cannot be null")
+    private String userId;
+
     @NotNull(message = "Title cannot be null")
     private String title;
 
@@ -21,7 +24,8 @@ public class QuestionDTO {
     private MultipartFile file; // For handling the image file
 
     // Constructor for mandatory fields
-    public QuestionDTO(String title, String body) {
+    public QuestionDTO(String userId, String title, String body) {
+        this.userId = userId;
         this.title = title;
         this.body = body;
     }

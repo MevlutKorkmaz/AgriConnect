@@ -13,6 +13,7 @@ public interface CommentRepository extends MongoRepository<Comment, String> {
 
     // Find all comments for a specific post or product
     List<Comment> findByPostId(String postId);
+    List<Comment> findByQuestionId(String questionId);
 
     // Find all replies for a specific comment
     List<Comment> findByParentCommentId(String parentCommentId);

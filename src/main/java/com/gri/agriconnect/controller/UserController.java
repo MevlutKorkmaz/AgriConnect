@@ -1,5 +1,6 @@
 package com.gri.agriconnect.controller;
 
+import com.gri.agriconnect.dto.UserDTO;
 import com.gri.agriconnect.model.User;
 import com.gri.agriconnect.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,6 +54,23 @@ public class UserController {
             return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Sign in", description = "Signs in a user with email and password")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "User signed in",
+                    content = @Content(schema = @Schema(implementation = User.class))),
+            @ApiResponse(responseCode = "401", description = "Invalid email or password")
+    })
+    @PostMapping("/signin")
+    public ResponseEntity<String> signIn(@Valid @RequestBody UserDTO userDTO) {
+        logger.info("Signing in user with email: {}", userDTO.getEmail());
+        Optional<String> userId = userService.authenticateUser(userDTO.getEmail(), userDTO.getPassword());
+        if (userId.isPresent()) {
+            return ResponseEntity.ok(userId.get());
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
         }
     }
 
@@ -236,6 +254,108 @@ public class UserController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
+
+//    // Email Verification
+//    @Operation(summary = "Send verification email", description = "Sends a verification email to the user")
+//    @ApiResponses(value = {
+//            @ApiResponse(responseCode = "200", description = "Verification email sent"),
+//            @ApiResponse(responseCode = "404", description = "User not found")
+//    })
+//    @PostMapping("/{userId}/send-verification-email")
+//    public ResponseEntity<Void> sendVerificationEmail(@PathVariable String userId) {
+//        logger.info("Sending verification email to user with ID: {}", userId);
+//        Optional<User> user = userService.getUserById(userId);
+//        if (user.isPresent()) {
+//            userService.sendVerificationEmail(user.get());
+//            return ResponseEntity.ok().build();
+//        } else {
+//            return ResponseEntity.notFound().build();
+//        }
+//    }
+
+//    @Operation(summary = "Verify email token", description = "Verifies the email token of the user")
+//    @ApiResponses(value = {
+//            @ApiResponse(responseCode = "200", description = "Email verified"),
+//            @ApiResponse(responseCode = "400", description = "Invalid token")
+//    })
+//    @GetMapping("/verify-email")
+//    public ResponseEntity<Void> verifyEmailToken(@RequestParam String token) {
+//        logger.info("Verifying email token");
+//        try {
+//            userService.verifyEmailToken(token);
+//            return ResponseEntity.ok().build();
+//        } catch (RuntimeException e) {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+//        }
+//    }
+
+    // Password Reset
+//    @Operation(summary = "Request password reset", description = "Requests a password reset for the user")
+//    @ApiResponses(value = {
+//            @ApiResponse(responseCode = "200", description = "Password reset requested"),
+//            @ApiResponse(responseCode = "404", description = "User not found")
+//    })
+//    @PostMapping("/request-password-reset")
+//    public ResponseEntity<Void> requestPasswordReset(@RequestParam String email) {
+//        logger.info("Requesting password reset for email: {}", email);
+//        try {
+//            userService.requestPasswordReset(email);
+//            return ResponseEntity.ok().build();
+//        } catch (RuntimeException e) {
+//            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+//        }
+//    }
+
+//    @Operation(summary = "Reset password", description = "Resets the password of the user using the provided token")
+//    @ApiResponses(value = {
+//            @ApiResponse(responseCode = "200", description = "Password reset"),
+//            @ApiResponse(responseCode = "400", description = "Invalid token")
+//    })
+//    @PostMapping("/reset-password")
+//    public ResponseEntity<Void> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
+//        logger.info("Resetting password using token");
+//        try {
+//            userService.resetPassword(token, newPassword);
+//            return ResponseEntity.ok().build();
+//        } catch (RuntimeException e) {
+//            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+//        }
+//    }
+
+//    // Notifications
+//    @Operation(summary = "Manage notifications", description = "Enables or disables email notifications for the user")
+//    @ApiResponses(value = {
+//            @ApiResponse(responseCode = "200", description = "Notification preferences updated"),
+//            @ApiResponse(responseCode = "404", description = "User not found")
+//    })
+//    @PatchMapping("/{userId}/manage-notifications")
+//    public ResponseEntity<Void> manageNotifications(@PathVariable String userId, @RequestParam boolean enable) {
+//        logger.info("Managing notifications for user with ID: {}", userId);
+//        Optional<User> user = userService.getUserById(userId);
+//        if (user.isPresent()) {
+//            userService.manageNotifications(userId, enable);
+//            return ResponseEntity.ok().build();
+//        } else {
+//            return ResponseEntity.notFound().build();
+//        }
+//    }
+
+//    @Operation(summary = "Send notification", description = "Sends a notification to the user")
+//    @ApiResponses(value = {
+//            @ApiResponse(responseCode = "200", description = "Notification sent"),
+//            @ApiResponse(responseCode = "404", description = "User not found")
+//    })
+//    @PostMapping("/{userId}/send-notification")
+//    public ResponseEntity<Void> sendNotification(@PathVariable String userId, @RequestParam String message) {
+//        logger.info("Sending notification to user with ID: {}", userId);
+//        Optional<User> user = userService.getUserById(userId);
+//        if (user.isPresent()) {
+//            userService.sendNotification(userId, message);
+//            return ResponseEntity.ok().build();
+//        } else {
+//            return ResponseEntity.notFound().build();
+//        }
+//    }
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<String> handleResponseStatusException(ResponseStatusException ex) {

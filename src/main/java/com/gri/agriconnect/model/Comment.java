@@ -21,8 +21,8 @@ public class Comment {
     @NotBlank
     private String content;
 
-    @NotBlank
-    private String postId; // ID of the post or product this comment belongs to
+    private String postId; // ID of the post this comment belongs to
+    private String questionId; // ID of the question this comment belongs to
 
     private Integer likeCount;
 
@@ -32,16 +32,16 @@ public class Comment {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    // New fields
     private String parentCommentId; // ID of the parent comment if this is a reply
     private Boolean isEdited; // Indicates if the comment has been edited
     private String originalContent; // Stores the original content of the comment
 
     // Custom constructor for mandatory fields
-    public Comment(String userId, String content, String postId) {
+    public Comment(String userId, String content, String postId, String questionId) {
         this.userId = userId;
         this.content = content;
         this.postId = postId;
+        this.questionId = questionId;
         this.likeCount = 0;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
