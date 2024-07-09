@@ -1,5 +1,6 @@
 package com.gri.agriconnect.service;
 
+import com.gri.agriconnect.dto.PostDTO;
 import com.gri.agriconnect.model.Post;
 import com.gri.agriconnect.model.User;
 import com.gri.agriconnect.repository.PostRepository;
@@ -24,6 +25,32 @@ public class PostService {
         this.postRepository = postRepository;
         this.userService = userService;
         this.imageService = imageService;
+    }
+
+    public Post createPost(String userId, String title, PostDTO postDTO) throws IOException {
+        Optional<User> userOpt = userService.getUserById(userId);
+        if (userOpt.isPresent()) {
+            Post post = new Post(userId, title, postDTO.getContent());
+
+            // Handle tags
+            List<String> tags = postDTO.getCategoryTags();
+            if (tags != null) {
+                for (String tag : tags) {
+                    post.addCategoryTag(tag);
+                }
+            }
+
+            // Handle image file
+            MultipartFile imageFile = postDTO.getImageFile();
+            if (imageFile != null && !imageFile.isEmpty()) {
+                String imageId = imageService.uploadImageToFileSystem(imageFile);
+                post.addImageId(imageId);
+            }
+
+            return postRepository.save(post);
+        } else {
+            throw new IllegalArgumentException("User does not exist.");
+        }
     }
 
     public Post savePost(Post post) {
@@ -60,26 +87,23 @@ public class PostService {
         }
     }
 
-    public Post updatePost(String postId, Post updatedPost) {
+    public Post updatePost(String postId, PostDTO postDTO) throws IOException {
         return postRepository.findById(postId).map(post -> {
-            post.setTitle(updatedPost.getTitle());
-            post.setContent(updatedPost.getContent());
-            post.setFavoriteCount(updatedPost.getFavoriteCount());
-            post.setLikeCount(updatedPost.getLikeCount());
-            post.setCommentCount(updatedPost.getCommentCount());
-            post.setCategoryTags(updatedPost.getCategoryTags());
-            post.setImageIds(updatedPost.getImageIds());
-            post.setIsPrivate(updatedPost.getIsPrivate());
-            post.setLocation(updatedPost.getLocation());
-            post.setShareCount(updatedPost.getShareCount());
+            post.setContent(postDTO.getContent());
+            post.setCategoryTags(postDTO.getCategoryTags());
+
+            MultipartFile imageFile = postDTO.getImageFile();
+            if (imageFile != null && !imageFile.isEmpty()) {
+                try {
+                    String imageId = imageService.uploadImageToFileSystem(imageFile);
+                    post.addImageId(imageId);
+                } catch (IOException e) {
+                    throw new RuntimeException("Failed to upload image", e);
+                }
+            }
             post.setUpdatedAt(LocalDateTime.now());
             return postRepository.save(post);
-        }).orElseGet(() -> {
-            updatedPost.setPostId(postId);
-            updatedPost.setCreatedAt(LocalDateTime.now());
-            updatedPost.setUpdatedAt(LocalDateTime.now());
-            return postRepository.save(updatedPost);
-        });
+        }).orElseThrow(() -> new IllegalArgumentException("Post with ID " + postId + " does not exist."));
     }
 
     public void addCategoryTag(String postId, String tag) {
@@ -108,7 +132,7 @@ public class PostService {
         });
     }
 
-    public void addImages(String postId, List<MultipartFile> images) throws IOException {
+    public void addImages(String postId, MultipartFile[] images) throws IOException {
         postRepository.findById(postId).ifPresent(post -> {
             try {
                 for (MultipartFile image : images) {
@@ -155,8 +179,8 @@ public class PostService {
         return postRepository.findByCategoryTagsContaining(tag);
     }
 
-    // New method to search posts by title or content
-//    public List<Post> searchPostsByTitleOrContent(String searchText) {
-//        return postRepository.findByTitleContainingOrContentContaining(searchText, searchText);
-//    }
+    // Updated method to search posts by title or content
+    public List<Post> searchPostsByTitleOrContent(String searchText) {
+        return postRepository.findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(searchText, searchText);
+    }
 }

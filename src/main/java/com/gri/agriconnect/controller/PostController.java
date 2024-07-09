@@ -1,5 +1,6 @@
 package com.gri.agriconnect.controller;
 
+import com.gri.agriconnect.dto.PostDTO;
 import com.gri.agriconnect.model.Post;
 import com.gri.agriconnect.service.PostService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,8 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
 import java.io.IOException;
@@ -27,7 +28,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/posts")
 @Validated
-@Tag(name = "Post", description = "Operations related to Posts")
+@Tag(name = "Post", description = "API for managing posts")
 public class PostController {
 
     private static final Logger logger = LoggerFactory.getLogger(PostController.class);
@@ -39,23 +40,31 @@ public class PostController {
         this.postService = postService;
     }
 
-    @Operation(summary = "Create a new post", description = "This endpoint allows you to create a new post.")
-    @ApiResponse(responseCode = "201", description = "Post created successfully",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Post.class)))
-    @PostMapping
-    public ResponseEntity<Post> createPost(@Valid @RequestBody Post post) {
+    @Operation(summary = "Create a new post", description = "Adds a new post to the system")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Post created",
+                    content = @Content(schema = @Schema(implementation = Post.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid input")
+    })
+    @PostMapping("/create")
+    public ResponseEntity<Post> createPost(
+            @Parameter(description = "ID of the user creating the post") @RequestParam String userId,
+            @Parameter(description = "Title of the post") @RequestParam String title,
+            @Valid @ModelAttribute PostDTO postDTO) throws IOException {
         logger.info("Creating a new post");
         try {
-            Post createdPost = postService.savePost(post);
+            Post createdPost = postService.createPost(userId, title, postDTO);
             return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
-    @Operation(summary = "Get all posts", description = "Fetch all posts.")
-    @ApiResponse(responseCode = "200", description = "List of posts",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Post.class)))
+    @Operation(summary = "Get all posts", description = "Fetches all posts in the system")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Posts fetched",
+                    content = @Content(schema = @Schema(implementation = Post.class)))
+    })
     @GetMapping
     public ResponseEntity<List<Post>> getAllPosts() {
         logger.info("Fetching all posts");
@@ -63,15 +72,14 @@ public class PostController {
         return new ResponseEntity<>(posts, HttpStatus.OK);
     }
 
-    @Operation(summary = "Get posts by user ID", description = "Fetch all posts for a given user ID.")
+    @Operation(summary = "Get posts by user ID", description = "Fetches posts by their user ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "List of posts",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Post.class))),
-            @ApiResponse(responseCode = "404", description = "No posts found for user ID")
+            @ApiResponse(responseCode = "200", description = "Posts fetched",
+                    content = @Content(schema = @Schema(implementation = Post.class))),
+            @ApiResponse(responseCode = "404", description = "No posts found")
     })
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Post>> getPostsByUserId(
-            @Parameter(description = "ID of the user to fetch posts for") @PathVariable String userId) {
+    public ResponseEntity<List<Post>> getPostsByUserId(@PathVariable String userId) {
         logger.info("Fetching posts for user ID: {}", userId);
         List<Post> posts = postService.getPostsByUserId(userId);
         if (posts.isEmpty()) {
@@ -80,29 +88,27 @@ public class PostController {
         return new ResponseEntity<>(posts, HttpStatus.OK);
     }
 
-    @Operation(summary = "Get a post by ID", description = "Fetch a post by its ID.")
+    @Operation(summary = "Get post by ID", description = "Fetches a post by its ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Post found",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Post.class))),
+            @ApiResponse(responseCode = "200", description = "Post fetched",
+                    content = @Content(schema = @Schema(implementation = Post.class))),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
     @GetMapping("/{postId}")
-    public ResponseEntity<Post> getPostById(
-            @Parameter(description = "ID of the post to fetch") @PathVariable String postId) {
+    public ResponseEntity<Post> getPostById(@PathVariable String postId) {
         logger.info("Fetching post with ID: {}", postId);
         Optional<Post> post = postService.getPostById(postId);
         return post.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found with ID: " + postId));
     }
 
-    @Operation(summary = "Delete a post by ID", description = "Delete a post by its ID.")
+    @Operation(summary = "Delete post", description = "Deletes a post by its ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Post deleted successfully"),
+            @ApiResponse(responseCode = "204", description = "Post deleted"),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
     @DeleteMapping("/{postId}")
-    public ResponseEntity<Void> deletePost(
-            @Parameter(description = "ID of the post to delete") @PathVariable String postId) {
+    public ResponseEntity<Void> deletePost(@PathVariable String postId) {
         logger.info("Deleting post with ID: {}", postId);
         try {
             postService.deletePost(postId);
@@ -112,38 +118,17 @@ public class PostController {
         }
     }
 
-    @Operation(summary = "Update a post", description = "Update the details of an existing post.")
+    @Operation(summary = "Update post", description = "Updates a post by its ID")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Post updated successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Post.class))),
+            @ApiResponse(responseCode = "200", description = "Post updated",
+                    content = @Content(schema = @Schema(implementation = Post.class))),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
     @PutMapping("/{postId}")
-    public ResponseEntity<Post> updatePost(
-            @Parameter(description = "ID of the post to update") @PathVariable String postId,
-            @Valid @RequestBody Post post) {
+    public ResponseEntity<Post> updatePost(@PathVariable String postId, @Valid @RequestBody PostDTO postDTO) throws IOException {
         logger.info("Updating post with ID: {}", postId);
         try {
-            Post updatedPost = postService.updatePost(postId, post);
-            return new ResponseEntity<>(updatedPost, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Patch a post", description = "Patch the details of an existing post.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Post patched successfully",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Post.class))),
-            @ApiResponse(responseCode = "404", description = "Post not found")
-    })
-    @PatchMapping("/{postId}")
-    public ResponseEntity<Post> patchPost(
-            @Parameter(description = "ID of the post to patch") @PathVariable String postId,
-            @RequestBody Post post) {
-        logger.info("Patching post with ID: {}", postId);
-        try {
-            Post updatedPost = postService.updatePost(postId, post);
+            Post updatedPost = postService.updatePost(postId, postDTO);
             return new ResponseEntity<>(updatedPost, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
@@ -167,22 +152,22 @@ public class PostController {
         return new ResponseEntity<>(posts, HttpStatus.OK);
     }
 
-//    @Operation(summary = "Search posts by title or content", description = "Fetch posts by title or content.")
-//    @ApiResponses(value = {
-//            @ApiResponse(responseCode = "200", description = "List of posts",
-//                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Post.class))),
-//            @ApiResponse(responseCode = "404", description = "No posts found for the search text")
-//    })
-//    @GetMapping("/search")
-//    public ResponseEntity<List<Post>> searchPostsByTitleOrContent(
-//            @Parameter(description = "Search text for title or content") @RequestParam String searchText) {
-//        logger.info("Searching posts by title or content: {}", searchText);
-//        List<Post> posts = postService.searchPostsByTitleOrContent(searchText);
-//        if (posts.isEmpty()) {
-//            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No posts found for the search text: " + searchText);
-//        }
-//        return new ResponseEntity<>(posts, HttpStatus.OK);
-//    }
+    @Operation(summary = "Search posts by title or content", description = "Fetch posts by title or content.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of posts",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Post.class))),
+            @ApiResponse(responseCode = "404", description = "No posts found for the search text")
+    })
+    @GetMapping("/search")
+    public ResponseEntity<List<Post>> searchPostsByTitleOrContent(
+            @Parameter(description = "Search text for title or content") @RequestParam String searchText) {
+        logger.info("Searching posts by title or content: {}", searchText);
+        List<Post> posts = postService.searchPostsByTitleOrContent(searchText);
+        if (posts.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No posts found for the search text: " + searchText);
+        }
+        return new ResponseEntity<>(posts, HttpStatus.OK);
+    }
 
     @Operation(summary = "Like a post", description = "Like a post by its ID.")
     @ApiResponses(value = {
@@ -218,77 +203,21 @@ public class PostController {
         }
     }
 
-    @Operation(summary = "Increment share count", description = "Increment the share count of a post by its ID.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Share count incremented successfully"),
-            @ApiResponse(responseCode = "404", description = "Post not found")
-    })
-    @PostMapping("/{postId}/share")
-    public ResponseEntity<Void> incrementShareCount(
-            @Parameter(description = "ID of the post to increment share count") @PathVariable String postId) {
-        logger.info("Incrementing share count for post with ID: {}", postId);
-        try {
-            postService.incrementShareCount(postId);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Add image to post", description = "Upload and add an image to a post by its ID.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Image added successfully"),
-            @ApiResponse(responseCode = "404", description = "Post not found"),
-            @ApiResponse(responseCode = "500", description = "Failed to upload image")
-    })
-    @PostMapping("/{postId}/image")
-    public ResponseEntity<Void> addImageToPost(
-            @Parameter(description = "ID of the post to add image to") @PathVariable String postId,
-            @RequestParam("file") MultipartFile file) {
-        logger.info("Adding image to post with ID: {}", postId);
-        try {
-            postService.addImage(postId, file);
-            return ResponseEntity.ok().build();
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload image");
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Add images to a post", description = "Add multiple images to a post by its ID.")
+    @Operation(summary = "Add images to post", description = "Adds multiple images to a post by its ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Images added successfully"),
             @ApiResponse(responseCode = "404", description = "Post not found")
     })
     @PostMapping("/{postId}/images")
-    public ResponseEntity<Void> addImagesToPost(
+    public ResponseEntity<Void> addImages(
             @Parameter(description = "ID of the post to add images to") @PathVariable String postId,
-            @RequestParam("files") List<MultipartFile> images) {
+            @RequestParam("files") MultipartFile[] images) {
         logger.info("Adding images to post with ID: {}", postId);
         try {
             postService.addImages(postId, images);
             return ResponseEntity.ok().build();
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload images");
-        } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
-        }
-    }
-
-    @Operation(summary = "Remove image from post", description = "Remove an image from a post by its ID and image ID.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Image removed successfully"),
-            @ApiResponse(responseCode = "404", description = "Post or image not found")
-    })
-    @DeleteMapping("/{postId}/image/{imageId}")
-    public ResponseEntity<Void> removeImageFromPost(
-            @Parameter(description = "ID of the post to remove image from") @PathVariable String postId,
-            @Parameter(description = "ID of the image to remove") @PathVariable String imageId) {
-        logger.info("Removing image from post with ID: {}", postId);
-        try {
-            postService.removeImage(postId, imageId);
-            return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

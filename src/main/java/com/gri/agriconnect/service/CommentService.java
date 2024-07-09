@@ -35,7 +35,7 @@ public class CommentService {
             Post post = postOpt.get();
             Comment savedComment = commentRepository.save(comment);
             post.getCommentIds().add(savedComment.getCommentId());
-            postService.updatePost(post.getPostId(), post);
+            postService.savePost(post);
             isValid = true;
         }
 
@@ -81,7 +81,7 @@ public class CommentService {
             if (postOpt.isPresent()) {
                 Post post = postOpt.get();
                 post.getCommentIds().remove(commentId);
-                postService.updatePost(post.getPostId(), post);
+                postService.savePost(post);
             }
 
             Optional<Product> productOpt = productService.getProductById(comment.getPostId());
@@ -102,7 +102,7 @@ public class CommentService {
             comment.setContent(updatedComment.getContent());
             comment.setLikeCount(updatedComment.getLikeCount());
             comment.setUpdatedAt(LocalDateTime.now());
-            comment.markAsEdited(updatedComment.getContent()); // Use the new method for marking as edited
+            comment.markAsEdited(updatedComment.getContent());
             return commentRepository.save(comment);
         }).orElseGet(() -> {
             updatedComment.setCommentId(commentId);
@@ -112,7 +112,6 @@ public class CommentService {
         });
     }
 
-    // New method to reply to a comment
     public Comment replyToComment(String parentCommentId, Comment reply) {
         Optional<Comment> parentCommentOpt = commentRepository.findById(parentCommentId);
         if (parentCommentOpt.isPresent()) {
@@ -122,12 +121,11 @@ public class CommentService {
             reply.setUpdatedAt(LocalDateTime.now());
             Comment savedReply = commentRepository.save(reply);
 
-            // Update the post or product with the new reply
             Optional<Post> postOpt = postService.getPostById(reply.getPostId());
             if (postOpt.isPresent()) {
                 Post post = postOpt.get();
                 post.getCommentIds().add(savedReply.getCommentId());
-                postService.updatePost(post.getPostId(), post);
+                postService.savePost(post);
             }
 
             Optional<Product> productOpt = productService.getProductById(reply.getPostId());
@@ -143,12 +141,10 @@ public class CommentService {
         }
     }
 
-    // New method to get replies for a specific comment
     public List<Comment> getRepliesForComment(String commentId) {
         return commentRepository.findByParentCommentId(commentId);
     }
 
-    // New method to like a comment
     public Comment likeComment(String commentId) {
         return commentRepository.findById(commentId).map(comment -> {
             comment.setLikeCount(comment.getLikeCount() + 1);
@@ -156,7 +152,6 @@ public class CommentService {
         }).orElseThrow(() -> new IllegalArgumentException("Comment with ID " + commentId + " does not exist."));
     }
 
-    // New method to unlike a comment
     public Comment unlikeComment(String commentId) {
         return commentRepository.findById(commentId).map(comment -> {
             comment.setLikeCount(Math.max(comment.getLikeCount() - 1, 0));
