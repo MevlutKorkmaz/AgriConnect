@@ -5,8 +5,10 @@ import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,9 +20,6 @@ public class User {
     @Id
     private String userId;
 
-    @NotBlank
-    private String accountName;
-
     @NotBlank(message = "First name cannot be blank")
     private String firstName;
 
@@ -29,13 +28,17 @@ public class User {
 
     @NotBlank
     @Email(message = "Email should be valid")
+    @Indexed(unique = true)
     private String email;
 
     @Size(min = 4, max = 15, message = "Password must be between 4 and 15 characters")
     private String password;
 
     private Boolean accountLocked;
-    private Boolean enabled;
+    private Boolean accountEnabled;
+
+    private Boolean emailVerified;
+    private String emailVerificationToken;
 
     @CreatedDate
     private LocalDateTime createdDate;
@@ -67,15 +70,26 @@ public class User {
     private List<String> productIds;
     private List<String> postIds;
 
+    private String profilePhotoId;  // Store the ID of the profile photo
+    private Boolean privateAccount;  // Indicates if the account is private
+
+    // Additional fields
+    private String bio;
+    private String coverPhotoId;  // Store the ID of the cover photo
+    private LocalDate dateOfBirth;
+    private List<String> socialMediaLinks;
+    private List<String> interests;
+    private Boolean emailNotificationsEnabled;
+
     // Custom constructor for mandatory fields
-    public User(String accountName, String firstName, String lastName, String email, String password) {
-        this.accountName = accountName;
+    public User(String firstName, String lastName, String email, String password) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.password = password;
         this.accountLocked = false;
-        this.enabled = true;
+        this.accountEnabled = false; // Initially false, needs email verification
+        this.emailVerified = false; // Initially false, needs email verification
         this.createdDate = LocalDateTime.now();
         this.lastModifiedDate = LocalDateTime.now();
         this.followerCount = 0;
@@ -88,6 +102,13 @@ public class User {
         this.conversationIds = new ArrayList<>();
         this.productIds = new ArrayList<>();
         this.postIds = new ArrayList<>();
+        this.privateAccount = false;
+        this.socialMediaLinks = new ArrayList<>();
+        this.interests = new ArrayList<>();
+        this.bio = "";
+        this.coverPhotoId = null;
+        this.dateOfBirth = null;
+        this.emailNotificationsEnabled = true;
     }
 
     // Add follower
@@ -173,5 +194,34 @@ public class User {
     // Get full name
     public String getFullName() {
         return firstName + " " + lastName;
+    }
+
+    // Check if a user can view the profile
+    public boolean canViewProfile(String viewerId) {
+        return !privateAccount || followerIds.contains(viewerId);
+    }
+
+    // Add interest
+    public void addInterest(String interest) {
+        if (!interests.contains(interest)) {
+            interests.add(interest);
+        }
+    }
+
+    // Remove interest
+    public void removeInterest(String interest) {
+        interests.remove(interest);
+    }
+
+    // Add social media link
+    public void addSocialMediaLink(String link) {
+        if (!socialMediaLinks.contains(link)) {
+            socialMediaLinks.add(link);
+        }
+    }
+
+    // Remove social media link
+    public void removeSocialMediaLink(String link) {
+        socialMediaLinks.remove(link);
     }
 }

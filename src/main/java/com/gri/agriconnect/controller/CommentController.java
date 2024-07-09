@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -132,20 +131,88 @@ public class CommentController {
         }
     }
 
-    @Operation(summary = "Patch a comment", description = "Patch the details of an existing comment.")
+    @Operation(summary = "Reply to a comment", description = "Reply to an existing comment by its ID.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Comment patched successfully",
+            @ApiResponse(responseCode = "201", description = "Reply created successfully",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "404", description = "Parent comment not found")
+    })
+    @PostMapping("/{parentCommentId}/reply")
+    public ResponseEntity<Comment> replyToComment(
+            @Parameter(description = "ID of the parent comment to reply to") @PathVariable String parentCommentId,
+            @Valid @RequestBody Comment reply) {
+        logger.info("Replying to comment with ID: {}", parentCommentId);
+        try {
+            Comment createdReply = commentService.replyToComment(parentCommentId, reply);
+            return new ResponseEntity<>(createdReply, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get comments for a post or product", description = "Fetch all comments for a given post or product ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of comments",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "404", description = "No comments found for post or product ID")
+    })
+    @GetMapping("/post/{postId}")
+    public ResponseEntity<List<Comment>> getCommentsByPostId(
+            @Parameter(description = "ID of the post or product to fetch comments for") @PathVariable String postId) {
+        logger.info("Fetching comments for post or product ID: {}", postId);
+        List<Comment> comments = commentService.getCommentsByPostId(postId);
+        if (comments.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No comments found for post or product ID: " + postId);
+        }
+        return new ResponseEntity<>(comments, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Get replies for a comment", description = "Fetch all replies for a given comment ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "List of replies",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Comment.class))),
+            @ApiResponse(responseCode = "404", description = "No replies found for comment ID")
+    })
+    @GetMapping("/{commentId}/replies")
+    public ResponseEntity<List<Comment>> getRepliesForComment(
+            @Parameter(description = "ID of the comment to fetch replies for") @PathVariable String commentId) {
+        logger.info("Fetching replies for comment ID: {}", commentId);
+        List<Comment> replies = commentService.getRepliesForComment(commentId);
+        if (replies.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No replies found for comment ID: " + commentId);
+        }
+        return new ResponseEntity<>(replies, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Like a comment", description = "Like a comment by its ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comment liked successfully"),
             @ApiResponse(responseCode = "404", description = "Comment not found")
     })
-    @PatchMapping("/{commentId}")
-    public ResponseEntity<Comment> patchComment(
-            @Parameter(description = "ID of the comment to patch") @PathVariable String commentId,
-            @RequestBody Comment comment) {
-        logger.info("Patching comment with ID: {}", commentId);
+    @PostMapping("/{commentId}/like")
+    public ResponseEntity<Comment> likeComment(
+            @Parameter(description = "ID of the comment to like") @PathVariable String commentId) {
+        logger.info("Liking comment with ID: {}", commentId);
         try {
-            Comment updatedComment = commentService.updateComment(commentId, comment);
-            return new ResponseEntity<>(updatedComment, HttpStatus.OK);
+            Comment likedComment = commentService.likeComment(commentId);
+            return new ResponseEntity<>(likedComment, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Unlike a comment", description = "Unlike a comment by its ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Comment unliked successfully"),
+            @ApiResponse(responseCode = "404", description = "Comment not found")
+    })
+    @PostMapping("/{commentId}/unlike")
+    public ResponseEntity<Comment> unlikeComment(
+            @Parameter(description = "ID of the comment to unlike") @PathVariable String commentId) {
+        logger.info("Unliking comment with ID: {}", commentId);
+        try {
+            Comment unlikedComment = commentService.unlikeComment(commentId);
+            return new ResponseEntity<>(unlikedComment, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

@@ -12,12 +12,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -45,8 +48,12 @@ public class UserController {
     @PostMapping
     public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
         logger.info("Creating a new user");
-        User createdUser = userService.createUser(user);
-        return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+        try {
+            User createdUser = userService.createUser(user);
+            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     @Operation(summary = "Get user by ID", description = "Fetches a user by their ID")
@@ -104,16 +111,16 @@ public class UserController {
         }
     }
 
-    @Operation(summary = "Search users by account name", description = "Searches for users by their account name")
+    @Operation(summary = "Search users by name", description = "Searches for users by their first or last name")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Users found",
                     content = @Content(schema = @Schema(implementation = User.class))),
             @ApiResponse(responseCode = "404", description = "No users found")
     })
     @GetMapping("/search")
-    public ResponseEntity<List<User>> searchUsersByAccountName(@RequestParam String accountName) {
-        logger.info("Searching users by account name: {}", accountName);
-        List<User> users = userService.searchUsersByAccountName(accountName);
+    public ResponseEntity<List<User>> searchUsersByName(@RequestParam String name) {
+        logger.info("Searching users by name: {}", name);
+        List<User> users = userService.searchUsersByName(name);
         return new ResponseEntity<>(users, HttpStatus.OK);
     }
 
@@ -124,9 +131,9 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found")
     })
     @PatchMapping("/{userId}/status")
-    public ResponseEntity<User> updateUserStatus(@PathVariable String userId, @RequestParam boolean enabled) {
+    public ResponseEntity<User> updateUserStatus(@PathVariable String userId, @RequestParam boolean accountEnabled) {
         logger.info("Updating status of user with ID: {}", userId);
-        Optional<User> updatedUser = userService.updateUserStatus(userId, enabled);
+        Optional<User> updatedUser = userService.updateUserStatus(userId, accountEnabled);
         return updatedUser.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -154,6 +161,80 @@ public class UserController {
         logger.info("Updating password of user with ID: {}", userId);
         Optional<User> updatedUser = userService.updateUserPassword(userId, newPassword);
         return updatedUser.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Update profile photo", description = "Updates the profile photo of a user by their ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile photo updated",
+                    content = @Content(schema = @Schema(implementation = User.class))),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @PatchMapping("/{userId}/profile-photo")
+    public ResponseEntity<Void> updateProfilePhoto(@PathVariable String userId, @RequestParam("file") MultipartFile profilePhoto) {
+        logger.info("Updating profile photo of user with ID: {}", userId);
+        try {
+            userService.updateProfilePhoto(userId, profilePhoto);
+            return ResponseEntity.ok().build();
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload profile photo");
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Update cover photo", description = "Updates the cover photo of a user by their ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cover photo updated",
+                    content = @Content(schema = @Schema(implementation = User.class))),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @PatchMapping("/{userId}/cover-photo")
+    public ResponseEntity<Void> updateCoverPhoto(@PathVariable String userId, @RequestParam("file") MultipartFile coverPhoto) {
+        logger.info("Updating cover photo of user with ID: {}", userId);
+        try {
+            userService.updateCoverPhoto(userId, coverPhoto);
+            return ResponseEntity.ok().build();
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to upload cover photo");
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get profile photo", description = "Retrieves the profile photo of a user by their ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile photo retrieved"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @GetMapping("/{userId}/profile-photo")
+    public ResponseEntity<byte[]> getProfilePhoto(@PathVariable String userId) {
+        logger.info("Fetching profile photo of user with ID: {}", userId);
+        try {
+            byte[] imageData = userService.getProfilePhoto(userId);
+            return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.IMAGE_JPEG).body(imageData);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve profile photo");
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Operation(summary = "Get cover photo", description = "Retrieves the cover photo of a user by their ID")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Cover photo retrieved"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @GetMapping("/{userId}/cover-photo")
+    public ResponseEntity<byte[]> getCoverPhoto(@PathVariable String userId) {
+        logger.info("Fetching cover photo of user with ID: {}", userId);
+        try {
+            byte[] imageData = userService.getCoverPhoto(userId);
+            return ResponseEntity.status(HttpStatus.OK).contentType(MediaType.IMAGE_JPEG).body(imageData);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to retrieve cover photo");
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
     }
 
     @ExceptionHandler(ResponseStatusException.class)

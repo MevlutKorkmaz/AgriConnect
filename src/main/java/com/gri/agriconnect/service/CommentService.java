@@ -64,6 +64,10 @@ public class CommentService {
         return commentRepository.findByUserId(userId);
     }
 
+    public List<Comment> getCommentsByPostId(String postId) {
+        return commentRepository.findByPostId(postId);
+    }
+
     public Optional<Comment> getCommentById(String commentId) {
         return commentRepository.findById(commentId);
     }
@@ -98,6 +102,7 @@ public class CommentService {
             comment.setContent(updatedComment.getContent());
             comment.setLikeCount(updatedComment.getLikeCount());
             comment.setUpdatedAt(LocalDateTime.now());
+            comment.markAsEdited(updatedComment.getContent()); // Use the new method for marking as edited
             return commentRepository.save(comment);
         }).orElseGet(() -> {
             updatedComment.setCommentId(commentId);
@@ -105,5 +110,57 @@ public class CommentService {
             updatedComment.setUpdatedAt(LocalDateTime.now());
             return commentRepository.save(updatedComment);
         });
+    }
+
+    // New method to reply to a comment
+    public Comment replyToComment(String parentCommentId, Comment reply) {
+        Optional<Comment> parentCommentOpt = commentRepository.findById(parentCommentId);
+        if (parentCommentOpt.isPresent()) {
+            Comment parentComment = parentCommentOpt.get();
+            reply.setParentCommentId(parentCommentId);
+            reply.setCreatedAt(LocalDateTime.now());
+            reply.setUpdatedAt(LocalDateTime.now());
+            Comment savedReply = commentRepository.save(reply);
+
+            // Update the post or product with the new reply
+            Optional<Post> postOpt = postService.getPostById(reply.getPostId());
+            if (postOpt.isPresent()) {
+                Post post = postOpt.get();
+                post.getCommentIds().add(savedReply.getCommentId());
+                postService.updatePost(post.getPostId(), post);
+            }
+
+            Optional<Product> productOpt = productService.getProductById(reply.getPostId());
+            if (productOpt.isPresent()) {
+                Product product = productOpt.get();
+                product.getCommentIds().add(savedReply.getCommentId());
+                productService.updateProduct(product.getProductId(), product);
+            }
+
+            return savedReply;
+        } else {
+            throw new IllegalArgumentException("Parent comment with ID " + parentCommentId + " does not exist.");
+        }
+    }
+
+    // New method to get replies for a specific comment
+    public List<Comment> getRepliesForComment(String commentId) {
+        return commentRepository.findByParentCommentId(commentId);
+    }
+
+    // New method to like a comment
+    public Comment likeComment(String commentId) {
+        return commentRepository.findById(commentId).map(comment -> {
+            comment.setLikeCount(comment.getLikeCount() + 1);
+            return commentRepository.save(comment);
+        }).orElseThrow(() -> new IllegalArgumentException("Comment with ID " + commentId + " does not exist."));
+    }
+
+    // New method to unlike a comment
+    public Comment unlikeComment(String commentId) {
+        return commentRepository.findById(commentId).map(comment -> {
+            comment.setLikeCount(Math.max(comment.getLikeCount() - 1, 0));
+            return commentRepository.save(comment);
+        }).orElseThrow(() -> new IllegalArgumentException("Comment with ID " + commentId + " does not exist."));
     }
 }
