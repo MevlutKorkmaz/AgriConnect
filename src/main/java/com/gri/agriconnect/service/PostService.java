@@ -4,6 +4,8 @@ import com.gri.agriconnect.dto.PostDTO;
 import com.gri.agriconnect.model.Post;
 import com.gri.agriconnect.model.User;
 import com.gri.agriconnect.repository.PostRepository;
+import com.gri.agriconnect.service.ImageService;
+import com.gri.agriconnect.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,10 +29,10 @@ public class PostService {
         this.imageService = imageService;
     }
 
-    public Post createPost(String userId, String title, PostDTO postDTO) throws IOException {
-        Optional<User> userOpt = userService.getUserById(userId);
+    public Post createPost(PostDTO postDTO) throws IOException {
+        Optional<User> userOpt = userService.getUserById(postDTO.getUserId());
         if (userOpt.isPresent()) {
-            Post post = new Post(userId, title, postDTO.getContent());
+            Post post = new Post(postDTO.getUserId(), postDTO.getTitle(), postDTO.getContent());
 
             // Handle tags
             List<String> tags = postDTO.getCategoryTags();
@@ -47,7 +49,7 @@ public class PostService {
                 post.addImageId(imageId);
             }
 
-            return postRepository.save(post);
+            return savePost(post);
         } else {
             throw new IllegalArgumentException("User does not exist.");
         }
@@ -89,6 +91,7 @@ public class PostService {
 
     public Post updatePost(String postId, PostDTO postDTO) throws IOException {
         return postRepository.findById(postId).map(post -> {
+            post.setTitle(postDTO.getTitle());
             post.setContent(postDTO.getContent());
             post.setCategoryTags(postDTO.getCategoryTags());
 

@@ -28,7 +28,7 @@ public class QuestionService {
     }
 
     public Question createQuestion(QuestionDTO questionDTO) throws IOException {
-        Optional<User> userOpt = userService.getUserById(questionDTO.getUserId()); // Replace with actual userId from authentication
+        Optional<User> userOpt = userService.getUserById(questionDTO.getUserId());
         if (userOpt.isPresent()) {
             Question question = new Question(questionDTO.getTitle(), questionDTO.getBody(), questionDTO.getUserId());
 
@@ -47,9 +47,20 @@ public class QuestionService {
                 question.addImage(imageId);
             }
 
-            return questionRepository.save(question);
+            return saveQuestion(question);
         } else {
             throw new IllegalArgumentException("User does not exist.");
+        }
+    }
+
+    public Question saveQuestion(Question question) {
+        Optional<User> userOpt = userService.getUserById(question.getUserId());
+        if (userOpt.isPresent()) {
+            Question savedQuestion = questionRepository.save(question);
+            userService.addQuestionToUser(question.getUserId(), savedQuestion.getQuestionId());
+            return savedQuestion;
+        } else {
+            throw new IllegalArgumentException("User with ID " + question.getUserId() + " does not exist.");
         }
     }
 
@@ -79,14 +90,8 @@ public class QuestionService {
             question.setTitle(updatedQuestionDTO.getTitle());
             question.setBody(updatedQuestionDTO.getBody());
             question.setUserId(updatedQuestionDTO.getUserId());
-
-            List<String> tags = updatedQuestionDTO.getTags();
-            if (tags != null) {
-                question.getCategoryTags().clear();
-                for (String tag : tags) {
-                    question.addCategoryTag(tag);
-                }
-            }
+            question.setCategoryTags(updatedQuestionDTO.getTags());
+            question.setUpdatedAt(LocalDateTime.now());
 
             MultipartFile file = updatedQuestionDTO.getFile();
             if (file != null && !file.isEmpty()) {
@@ -98,7 +103,6 @@ public class QuestionService {
                 }
             }
 
-            question.setUpdatedAt(LocalDateTime.now());
             return questionRepository.save(question);
         }).orElseThrow(() -> new IllegalArgumentException("Question with ID " + questionId + " does not exist."));
     }
@@ -152,7 +156,7 @@ public class QuestionService {
 
     public Question likeQuestion(String questionId) {
         return questionRepository.findById(questionId).map(question -> {
-            question.incrementLikeCount();
+            question.setLikeCount(question.getLikeCount() + 1);
             return questionRepository.save(question);
         }).orElseThrow(() -> new IllegalArgumentException("Question with ID " + questionId + " does not exist."));
     }
@@ -164,18 +168,15 @@ public class QuestionService {
         }).orElseThrow(() -> new IllegalArgumentException("Question with ID " + questionId + " does not exist."));
     }
 
-    // New method to search questions by category tags
     public List<Question> searchQuestionsByTag(String tag) {
         return questionRepository.findByCategoryTagsContaining(tag);
     }
 
-    // New method to search questions by title or body
     public List<Question> searchQuestionsByTitleOrBody(String searchText) {
         return questionRepository.findByTitleContainingOrBodyContaining(searchText, searchText);
     }
 
-    // Add saveQuestion method
-    public Question saveQuestion(Question question) {
-        return questionRepository.save(question);
-    }
+//    public Question saveQuestion(Question question) {
+//        return questionRepository.save(question);
+//    }
 }

@@ -13,6 +13,8 @@ public class PostDTO {
     @NotNull(message = "User ID cannot be null")
     private String userId;
 
+    private String title; // Allowing null value for title
+
     @Size(max = 2000, message = "Content can be at most 2000 characters")
     private String content;
 

@@ -48,12 +48,10 @@ public class PostController {
     })
     @PostMapping("/create")
     public ResponseEntity<Post> createPost(
-            @Parameter(description = "ID of the user creating the post") @RequestParam String userId,
-            @Parameter(description = "Title of the post") @RequestParam String title,
             @Valid @ModelAttribute PostDTO postDTO) throws IOException {
         logger.info("Creating a new post");
         try {
-            Post createdPost = postService.createPost(userId, title, postDTO);
+            Post createdPost = postService.createPost(postDTO);
             return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
