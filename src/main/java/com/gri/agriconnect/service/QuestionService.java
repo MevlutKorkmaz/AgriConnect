@@ -179,4 +179,19 @@ public class QuestionService {
 //    public Question saveQuestion(Question question) {
 //        return questionRepository.save(question);
 //    }
+
+    public List<Question> getNewestQuestions() {
+        return questionRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    public List<Question> getOldestQuestions() {
+        return questionRepository.findAllByOrderByCreatedAtAsc();
+    }
+
+    public List<Question> getUnansweredQuestions() {
+        return questionRepository.findByCommentCountIsZero();
+    }
 }
+
+
+
