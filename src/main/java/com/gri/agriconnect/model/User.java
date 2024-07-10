@@ -30,7 +30,7 @@ public class User {
     @Email(message = "Email should be valid")
     @Indexed(unique = true)
     private String email;
-
+    @NotBlank
     @Size(min = 4, max = 15, message = "Password must be between 4 and 15 characters")
     private String password;
 
