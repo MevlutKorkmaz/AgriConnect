@@ -21,10 +21,10 @@ public class User {
     private String userId;
 
     @NotBlank(message = "First name cannot be blank")
-    private String firstName;
+    private String name;
 
-    @NotBlank(message = "Last name cannot be blank")
-    private String lastName;
+//    @NotBlank(message = "Last name cannot be blank")
+//    private String lastName;
 
     @NotBlank
     @Email(message = "Email should be valid")
@@ -78,9 +78,9 @@ public class User {
     private Boolean emailNotificationsEnabled;
 
     // Custom constructor for mandatory fields
-    public User(String firstName, String lastName, String email, String password) {
-        this.firstName = firstName;
-        this.lastName = lastName;
+    public User(String name, String email, String password) {
+        this.name = name;
+//        this.lastName = lastName;
         this.email = email;
         this.password = password;
         this.accountLocked = false;
@@ -170,9 +170,9 @@ public class User {
     }
 
     // Get full name
-    public String getFullName() {
-        return firstName + " " + lastName;
-    }
+//    public String getFullName() {
+//        return firstName + " " + lastName;
+//    }
 
     // Check if a user can view the profile
     public boolean canViewProfile(String viewerId) {

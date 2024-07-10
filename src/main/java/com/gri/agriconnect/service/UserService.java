@@ -54,8 +54,8 @@ public class UserService {
 
     public Optional<User> updateUser(String userId, User userDetails) {
         return userRepository.findById(userId).map(user -> {
-            user.setFirstName(userDetails.getFirstName());
-            user.setLastName(userDetails.getLastName());
+            user.setName(userDetails.getName());
+//            user.setLastName(userDetails.getLastName());
             user.setEmail(userDetails.getEmail());
             user.setPassword(userDetails.getPassword());
             user.setPhoneNo(userDetails.getPhoneNo());
@@ -89,7 +89,7 @@ public class UserService {
     }
 
     public List<User> searchUsersByName(String name) {
-        return userRepository.findByFirstNameContainingOrLastNameContaining(name, name);
+        return userRepository.findByNameContaining( name);
     }
 
     public Optional<User> updateUserStatus(String userId, boolean accountEnabled) {
