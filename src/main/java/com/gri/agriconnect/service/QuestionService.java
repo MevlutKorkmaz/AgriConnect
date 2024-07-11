@@ -2,8 +2,10 @@ package com.gri.agriconnect.service;
 
 import com.gri.agriconnect.dto.QuestionDTO;
 import com.gri.agriconnect.model.Question;
+import com.gri.agriconnect.model.Tag;
 import com.gri.agriconnect.model.User;
 import com.gri.agriconnect.repository.QuestionRepository;
+import com.gri.agriconnect.repository.TagRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,12 +21,15 @@ public class QuestionService {
     private final QuestionRepository questionRepository;
     private final UserService userService;
     private final ImageService imageService;
+    private final TagRepository tagRepository;
 
     @Autowired
-    public QuestionService(QuestionRepository questionRepository, UserService userService, ImageService imageService) {
+    public QuestionService(QuestionRepository questionRepository, UserService userService,
+                           ImageService imageService, TagRepository tagRepository) {
         this.questionRepository = questionRepository;
         this.userService = userService;
         this.imageService = imageService;
+        this.tagRepository = tagRepository;
     }
 
     public Question createQuestion(QuestionDTO questionDTO) throws IOException {
@@ -35,8 +40,8 @@ public class QuestionService {
             // Handle tags
             List<String> tags = questionDTO.getTags();
             if (tags != null) {
-                for (String tag : tags) {
-                    question.addCategoryTag(tag);
+                for (String tagName : tags) {
+                    question.addCategoryTag(tagName);
                 }
             }
 
@@ -47,7 +52,19 @@ public class QuestionService {
                 question.addImage(imageId);
             }
 
-            return saveQuestion(question);
+            //save the question entity once to obtain it's database id.
+            Question savedQuestion =  saveQuestion(question);
+
+            //use question id to associate the tag entity to it.
+            for(String tagName : tags){
+                List<Tag> query = tagRepository.findByName(tagName);
+                for(Tag t : query){
+                    t.getContentIds().add(savedQuestion.getQuestionId());
+                    tagRepository.save(t);
+                }
+            }
+
+            return savedQuestion;
         } else {
             throw new IllegalArgumentException("User does not exist.");
         }

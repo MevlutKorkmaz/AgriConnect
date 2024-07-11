@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.List;
+
 @Data
 @Document(collection = "images")
 @AllArgsConstructor
@@ -18,4 +20,5 @@ public class Image {
     private String name;
     private String type;
     private String filePath;
+    private List<String> tags;
 }
