@@ -40,7 +40,7 @@ public class CommentService {
             if (postOpt.isPresent()) {
                 Post post = postOpt.get();
                 Comment savedComment = commentRepository.save(comment);
-                post.getCommentIds().add(savedComment.getCommentId());
+                post.addComment(savedComment.getCommentId());
                 postService.savePost(post);
                 isValid = true;
             }

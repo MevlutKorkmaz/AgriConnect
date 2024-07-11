@@ -22,10 +22,11 @@ public class Post {
     @NotBlank
     private String userId;
 
-    @NotBlank
+//    @NotBlank
     private String title;
 
     @Size(max = 2000)
+    @NotBlank
     private String content;
 
     private Integer favoriteCount;

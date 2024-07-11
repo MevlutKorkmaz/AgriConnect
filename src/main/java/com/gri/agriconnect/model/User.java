@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Data
+
 @Document(collection = "users")
 public class User {
 
