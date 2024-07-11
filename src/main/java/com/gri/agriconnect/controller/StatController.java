@@ -45,12 +45,12 @@ public class StatController {
             @ApiResponse(responseCode = "400", description = "Recommendation Image failed")
     })
     @GetMapping("/toppref")
-    public ResponseEntity<?> toppref(@Validated @PathVariable String userId) throws IOException {
+    public ResponseEntity<?> toppref(@Validated @RequestParam String userid) throws IOException {
 
         logger.info("Looking for a image to recommend");
         try {
 
-            byte[] imageData = statService.getRecommendation(userId);
+            byte[] imageData = statService.getRecommendation(userid);
             return ResponseEntity.status(HttpStatus.OK)
                     .contentType(MediaType.valueOf("image/png"))
                     .body(imageData);
